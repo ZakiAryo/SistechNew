@@ -8,6 +8,7 @@ import DataTable from "./DataTable";
 import FormInput from "./FormInput";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
+import { writeAuditLog } from "@/lib/audit";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 function getNestedValue(row, key) {
@@ -53,10 +54,15 @@ export default function MasterDataPage({
   orderBy = "created_at",
   searchColumns,
   columns,
-  fields
+  fields,
+  allowedRoles = ["admin"],
+  userIdField,
+  detailBasePath,
+  documentUrlKey
 }) {
   const [rows, setRows] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [lookupOptions, setLookupOptions] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -78,7 +84,7 @@ export default function MasterDataPage({
     }
   }, []);
 
-  const canManage = profile?.role === "admin";
+  const canManage = Boolean(profile?.role && (profile.role === "admin" || allowedRoles.includes(profile.role)));
 
   const hydratedFields = useMemo(() => {
     return fields.map((field) => {
@@ -144,6 +150,8 @@ export default function MasterDataPage({
     if (!user) {
       return;
     }
+
+    setCurrentUser(user);
 
     const { data } = await supabase
       .from("profiles")
@@ -293,15 +301,27 @@ export default function MasterDataPage({
 
     setSubmitting(true);
     const payload = buildPayload();
+    if (userIdField && currentUser?.id && !editingRecord) {
+      payload[userIdField] = currentUser.id;
+    }
+
     const request = editingRecord
       ? supabase.from(tableName).update(payload).eq("id", editingRecord.id)
       : supabase.from(tableName).insert(payload);
 
-    const { error: mutationError } = await request;
+    const { data: mutationData, error: mutationError } = await request.select("id").maybeSingle();
 
     if (mutationError) {
       setToast({ type: "error", message: formatSupabaseError(mutationError) });
     } else {
+      await writeAuditLog(supabase, {
+        userId: currentUser?.id,
+        action: editingRecord ? "update" : "create",
+        module: entityName,
+        tableName,
+        recordId: editingRecord?.id || mutationData?.id,
+        metadata: payload
+      });
       setToast({
         type: "success",
         message: `${entityName} ${editingRecord ? "updated" : "created"} successfully.`
@@ -334,6 +354,14 @@ export default function MasterDataPage({
     if (deleteError) {
       setToast({ type: "error", message: formatSupabaseError(deleteError) });
     } else {
+      await writeAuditLog(supabase, {
+        userId: currentUser?.id,
+        action: "delete",
+        module: entityName,
+        tableName,
+        recordId: recordToDelete.id,
+        metadata: recordToDelete
+      });
       setToast({ type: "success", message: `${entityName} deleted successfully.` });
       setRecordToDelete(null);
       await loadRows();
@@ -409,6 +437,8 @@ export default function MasterDataPage({
         onEdit={openEditForm}
         onDelete={setRecordToDelete}
         canManage={canManage}
+        detailBasePath={detailBasePath}
+        documentUrlKey={documentUrlKey}
       />
 
       <Modal

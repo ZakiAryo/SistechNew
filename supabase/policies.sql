@@ -10,6 +10,18 @@ $$;
 
 grant execute on function public.current_user_role() to authenticated;
 
+create or replace function public.current_user_has_role(required_roles text[])
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select coalesce(public.current_user_role() = any(required_roles), false)
+$$;
+
+grant execute on function public.current_user_has_role(text[]) to authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.customers enable row level security;
 alter table public.suppliers enable row level security;
@@ -19,6 +31,17 @@ alter table public.purchase_requests enable row level security;
 alter table public.purchase_orders enable row level security;
 alter table public.invoices enable row level security;
 alter table public.notifications enable row level security;
+alter table public.contracts enable row level security;
+alter table public.project_cost_codes enable row level security;
+alter table public.project_budgets enable row level security;
+alter table public.purchase_request_items enable row level security;
+alter table public.purchase_order_items enable row level security;
+alter table public.delivery_orders enable row level security;
+alter table public.account_payables enable row level security;
+alter table public.account_receivables enable row level security;
+alter table public.cash_bank_transactions enable row level security;
+alter table public.accounting_entries enable row level security;
+alter table public.audit_logs enable row level security;
 
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
 create policy "profiles_select_own_or_admin"
@@ -78,6 +101,14 @@ for delete
 to authenticated
 using (public.current_user_role() = 'admin');
 
+drop policy if exists "customers_marketing_manage" on public.customers;
+create policy "customers_marketing_manage"
+on public.customers
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'marketing']))
+with check (public.current_user_has_role(array['admin', 'marketing']));
+
 drop policy if exists "suppliers_authenticated_read" on public.suppliers;
 create policy "suppliers_authenticated_read"
 on public.suppliers
@@ -106,6 +137,14 @@ on public.suppliers
 for delete
 to authenticated
 using (public.current_user_role() = 'admin');
+
+drop policy if exists "suppliers_purchasing_manage" on public.suppliers;
+create policy "suppliers_purchasing_manage"
+on public.suppliers
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'purchasing']))
+with check (public.current_user_has_role(array['admin', 'purchasing']));
 
 drop policy if exists "projects_authenticated_read" on public.projects;
 create policy "projects_authenticated_read"
@@ -136,6 +175,14 @@ for delete
 to authenticated
 using (public.current_user_role() = 'admin');
 
+drop policy if exists "projects_marketing_manage" on public.projects;
+create policy "projects_marketing_manage"
+on public.projects
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'marketing']))
+with check (public.current_user_has_role(array['admin', 'marketing']));
+
 drop policy if exists "cost_codes_authenticated_read" on public.cost_codes;
 create policy "cost_codes_authenticated_read"
 on public.cost_codes
@@ -165,6 +212,14 @@ for delete
 to authenticated
 using (public.current_user_role() = 'admin');
 
+drop policy if exists "cost_codes_marketing_manage" on public.cost_codes;
+create policy "cost_codes_marketing_manage"
+on public.cost_codes
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'marketing']))
+with check (public.current_user_has_role(array['admin', 'marketing']));
+
 drop policy if exists "purchase_requests_authenticated_read" on public.purchase_requests;
 create policy "purchase_requests_authenticated_read"
 on public.purchase_requests
@@ -179,6 +234,14 @@ for all
 to authenticated
 using (public.current_user_role() = 'admin')
 with check (public.current_user_role() = 'admin');
+
+drop policy if exists "purchase_requests_engineering_purchasing_manage" on public.purchase_requests;
+create policy "purchase_requests_engineering_purchasing_manage"
+on public.purchase_requests
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'engineering', 'purchasing']))
+with check (public.current_user_has_role(array['admin', 'engineering', 'purchasing']));
 
 drop policy if exists "purchase_orders_authenticated_read" on public.purchase_orders;
 create policy "purchase_orders_authenticated_read"
@@ -195,6 +258,14 @@ to authenticated
 using (public.current_user_role() = 'admin')
 with check (public.current_user_role() = 'admin');
 
+drop policy if exists "purchase_orders_purchasing_finance_manage" on public.purchase_orders;
+create policy "purchase_orders_purchasing_finance_manage"
+on public.purchase_orders
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'purchasing', 'finance']))
+with check (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
+
 drop policy if exists "invoices_authenticated_read" on public.invoices;
 create policy "invoices_authenticated_read"
 on public.invoices
@@ -210,27 +281,47 @@ to authenticated
 using (public.current_user_role() = 'admin')
 with check (public.current_user_role() = 'admin');
 
+drop policy if exists "invoices_finance_manage" on public.invoices;
+create policy "invoices_finance_manage"
+on public.invoices
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
 drop policy if exists "notifications_select_own_or_admin" on public.notifications;
 create policy "notifications_select_own_or_admin"
 on public.notifications
 for select
 to authenticated
-using (user_id = auth.uid() or public.current_user_role() = 'admin');
+using (
+  user_id = auth.uid()
+  or target_role = public.current_user_role()
+  or public.current_user_role() = 'admin'
+);
 
 drop policy if exists "notifications_update_own_or_admin" on public.notifications;
 create policy "notifications_update_own_or_admin"
 on public.notifications
 for update
 to authenticated
-using (user_id = auth.uid() or public.current_user_role() = 'admin')
-with check (user_id = auth.uid() or public.current_user_role() = 'admin');
+using (
+  user_id = auth.uid()
+  or target_role = public.current_user_role()
+  or public.current_user_role() = 'admin'
+)
+with check (
+  user_id = auth.uid()
+  or target_role = public.current_user_role()
+  or public.current_user_role() = 'admin'
+);
 
 drop policy if exists "notifications_admin_insert" on public.notifications;
 create policy "notifications_admin_insert"
 on public.notifications
 for insert
 to authenticated
-with check (public.current_user_role() = 'admin');
+with check (public.current_user_has_role(array['admin', 'marketing', 'engineering', 'purchasing', 'finance']));
 
 drop policy if exists "notifications_admin_delete" on public.notifications;
 create policy "notifications_admin_delete"
@@ -239,4 +330,126 @@ for delete
 to authenticated
 using (public.current_user_role() = 'admin');
 
--- TODO: refine role-specific write policies for marketing, purchasing, finance, and engineering workflows.
+drop policy if exists "contracts_authenticated_read" on public.contracts;
+create policy "contracts_authenticated_read"
+on public.contracts
+for select
+to authenticated
+using (true);
+
+drop policy if exists "contracts_marketing_manage" on public.contracts;
+create policy "contracts_marketing_manage"
+on public.contracts
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'marketing']))
+with check (public.current_user_has_role(array['admin', 'marketing']));
+
+drop policy if exists "project_cost_codes_authenticated_read" on public.project_cost_codes;
+create policy "project_cost_codes_authenticated_read"
+on public.project_cost_codes
+for select
+to authenticated
+using (true);
+
+drop policy if exists "project_cost_codes_marketing_manage" on public.project_cost_codes;
+create policy "project_cost_codes_marketing_manage"
+on public.project_cost_codes
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'marketing']))
+with check (public.current_user_has_role(array['admin', 'marketing']));
+
+drop policy if exists "project_budgets_authenticated_read" on public.project_budgets;
+create policy "project_budgets_authenticated_read"
+on public.project_budgets
+for select
+to authenticated
+using (true);
+
+drop policy if exists "project_budgets_marketing_manage" on public.project_budgets;
+create policy "project_budgets_marketing_manage"
+on public.project_budgets
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'marketing']))
+with check (public.current_user_has_role(array['admin', 'marketing']));
+
+drop policy if exists "purchase_request_items_roles_manage" on public.purchase_request_items;
+create policy "purchase_request_items_roles_manage"
+on public.purchase_request_items
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'engineering', 'purchasing']))
+with check (public.current_user_has_role(array['admin', 'engineering', 'purchasing']));
+
+drop policy if exists "purchase_order_items_roles_manage" on public.purchase_order_items;
+create policy "purchase_order_items_roles_manage"
+on public.purchase_order_items
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'purchasing', 'finance']))
+with check (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
+
+drop policy if exists "delivery_orders_roles_manage" on public.delivery_orders;
+create policy "delivery_orders_roles_manage"
+on public.delivery_orders
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'purchasing', 'finance']))
+with check (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
+
+drop policy if exists "account_payables_finance_manage" on public.account_payables;
+create policy "account_payables_finance_manage"
+on public.account_payables
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
+drop policy if exists "account_payables_purchasing_read" on public.account_payables;
+create policy "account_payables_purchasing_read"
+on public.account_payables
+for select
+to authenticated
+using (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
+
+drop policy if exists "account_receivables_finance_manage" on public.account_receivables;
+create policy "account_receivables_finance_manage"
+on public.account_receivables
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
+drop policy if exists "cash_bank_transactions_finance_manage" on public.cash_bank_transactions;
+create policy "cash_bank_transactions_finance_manage"
+on public.cash_bank_transactions
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
+drop policy if exists "accounting_entries_finance_manage" on public.accounting_entries;
+create policy "accounting_entries_finance_manage"
+on public.accounting_entries
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
+drop policy if exists "audit_logs_insert_own" on public.audit_logs;
+create policy "audit_logs_insert_own"
+on public.audit_logs
+for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists "audit_logs_select_own_or_admin" on public.audit_logs;
+create policy "audit_logs_select_own_or_admin"
+on public.audit_logs
+for select
+to authenticated
+using (user_id = auth.uid() or public.current_user_role() = 'admin');
+
+-- TODO: tighten field-level workflow transitions with RPC functions before production approval.

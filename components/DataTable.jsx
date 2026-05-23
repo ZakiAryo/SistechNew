@@ -1,6 +1,7 @@
 "use client";
 
-import { Edit2, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Edit2, ExternalLink, FileSearch, Trash2 } from "lucide-react";
 
 function getNestedValue(row, key) {
   return key.split(".").reduce((value, part) => value?.[part], row);
@@ -69,7 +70,9 @@ export default function DataTable({
   emptyDescription = "Create a record to get started.",
   onEdit,
   onDelete,
-  canManage
+  canManage,
+  detailBasePath,
+  documentUrlKey
 }) {
   if (loading) {
     return (
@@ -144,6 +147,28 @@ export default function DataTable({
                 ))}
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   <div className="inline-flex items-center gap-1">
+                    {detailBasePath ? (
+                      <Link
+                        href={`${detailBasePath}/${row.id}`}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-cyan-700 hover:bg-cyan-50"
+                        aria-label="Detail record"
+                        title="Detail"
+                      >
+                        <FileSearch className="h-4 w-4" />
+                      </Link>
+                    ) : null}
+                    {documentUrlKey && getNestedValue(row, documentUrlKey) ? (
+                      <a
+                        href={getNestedValue(row, documentUrlKey)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                        aria-label="View document"
+                        title="View Contract"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    ) : null}
                     <button
                       type="button"
                       className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"

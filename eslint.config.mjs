@@ -12,6 +12,18 @@ const eslintConfig = [
   {
     ignores: [".next/**", "node_modules/**"]
   },
+  {
+    files: ["**/*.{js,jsx}"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true
+        }
+      }
+    }
+  },
   ...compat.extends("next/core-web-vitals")
 ];
 

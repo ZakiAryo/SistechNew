@@ -1,10 +1,16 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import ModuleDashboard from "@/components/ModuleDashboard";
 
 export default function FinancePage() {
   return (
-    <PlaceholderPage
-      title="Finance"
-      description="Account payable, account receivable, invoices, and payment status will be built in the finance phase."
+    <ModuleDashboard
+      title="Finance & Accounting Dashboard"
+      description="Receive approved purchasing transactions, process payments, and monitor accounting reports."
+      stats={[
+        { table: "account_payables", label: "Account Payable", iconKey: "creditCard" },
+        { table: "account_receivables", label: "Account Receivable", iconKey: "fileText" },
+        { table: "cash_bank_transactions", label: "Cash & Bank", iconKey: "banknote" },
+        { table: "accounting_entries", label: "Accounting Entries", iconKey: "wallet" }
+      ]}
     />
   );
 }

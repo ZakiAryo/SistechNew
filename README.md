@@ -29,9 +29,10 @@ npm install
 supabase/schema.sql
 supabase/policies.sql
 supabase/seed.sql
+supabase/demo-users.sql
 ```
 
-Urutan ini penting karena `policies.sql` membutuhkan table dari `schema.sql`, dan `seed.sql` membutuhkan table yang sudah tersedia.
+Urutan ini penting karena `policies.sql` membutuhkan table dari `schema.sql`, dan `seed.sql` membutuhkan table yang sudah tersedia. Jalankan `demo-users.sql` setelah user dibuat di Supabase Authentication.
 
 ## Environment Variables
 
@@ -85,6 +86,8 @@ Setelah role admin aktif, user tersebut bisa insert, update, dan delete master d
 - `supabase/schema.sql`: extension, table, index, updated_at trigger, profile trigger dari Supabase Auth.
 - `supabase/policies.sql`: RLS enablement dan policy awal.
 - `supabase/seed.sql`: dummy data untuk customers, suppliers, projects, dan cost codes.
+- `supabase/demo-users.sql`: update role untuk akun demo setelah dibuat di Supabase Auth.
+- `docs/SISTECH_WORKFLOW.md`: desain relasi, hak akses role, menu, workflow, dan status approval.
 
 ## Modul Selesai di Tahap 1
 
@@ -111,6 +114,19 @@ Setelah role admin aktif, user tersebut bisa insert, update, dan delete master d
   - `/reports`
   - `/notifications`
   - `/users`
+
+## Modul Tambahan Tahap 2
+
+- Multi-role login menggunakan Supabase Auth + `profiles.role`.
+- Sidebar dinamis berdasarkan role.
+- Dashboard berbeda untuk admin, marketing, engineering, purchasing, finance, dan user.
+- Marketing: customer, project, cost code mapping, budget, contract, cost control report.
+- Engineering: input PR dan PR outstanding.
+- Purchasing: incoming PR, convert PR to PO, PO input, delivery order, PO vs payment.
+- Finance: account payable dari approved PO, account receivable, cash bank, AP/AR aging, accounting report, tax report.
+- Notifications antar role.
+- Audit log user activity.
+- Export CSV/Excel dan print/PDF untuk report.
 
 ## RLS Policy Awal
 

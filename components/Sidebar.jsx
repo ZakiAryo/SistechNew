@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,30 +11,25 @@ import {
   FileBarChart2,
   Landmark,
   Layers3,
-  Settings2,
   ShieldCheck,
   Users,
   Wrench,
   X
 } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { getMenuSectionsForRole, roleLabels } from "@/lib/menuConfig";
 
-const mainItems = [
-  { label: "Dashboard", href: "/dashboard", icon: BarChart3 },
-  { label: "Marketing", href: "/marketing", icon: BriefcaseBusiness },
-  { label: "Engineering", href: "/engineering", icon: Wrench },
-  { label: "Purchasing", href: "/purchasing", icon: ClipboardList },
-  { label: "Finance", href: "/finance", icon: Landmark },
-  { label: "Reports", href: "/reports", icon: FileBarChart2 },
-  { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Users", href: "/users", icon: Users }
-];
-
-const masterItems = [
-  { label: "Customers", href: "/master-data/customers" },
-  { label: "Suppliers", href: "/master-data/suppliers" },
-  { label: "Projects", href: "/master-data/projects" },
-  { label: "Cost Codes", href: "/master-data/cost-codes" }
-];
+const iconMap = {
+  dashboard: BarChart3,
+  marketing: BriefcaseBusiness,
+  engineering: Wrench,
+  purchasing: ClipboardList,
+  finance: Landmark,
+  reports: FileBarChart2,
+  notifications: Bell,
+  users: Users,
+  master: Layers3
+};
 
 function isActivePath(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -41,6 +37,48 @@ function isActivePath(pathname, href) {
 
 export default function Sidebar({ open, onClose }) {
   const pathname = usePathname();
+  const [role, setRole] = useState("user");
+  const menuSections = getMenuSectionsForRole(role);
+  const supabase = useMemo(() => {
+    try {
+      return createSupabaseBrowserClient();
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadRole() {
+      if (!supabase) {
+        return;
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+
+      if (!user) {
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (active && data?.role) {
+        setRole(data.role);
+      }
+    }
+
+    loadRole();
+
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
 
   return (
     <>
@@ -79,85 +117,39 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
-          <div>
-            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Workspace
-            </p>
-            <div className="mt-2 space-y-1">
-              {mainItems.slice(0, 1).map((item) => {
-                const Icon = item.icon;
-                const active = isActivePath(pathname, item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onClose}
-                    className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition ${
-                      active
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+          {menuSections.map((section) => {
+            const SectionIcon = section.icon ? iconMap[section.icon] : null;
 
-          <div>
-            <p className="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              <Layers3 className="h-3.5 w-3.5" />
-              Master Data
-            </p>
-            <div className="mt-2 space-y-1">
-              {masterItems.map((item) => {
-                const active = isActivePath(pathname, item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onClose}
-                    className={`flex h-10 items-center rounded-md px-3 pl-9 text-sm font-medium transition ${
-                      active
-                        ? "bg-cyan-50 text-cyan-800 ring-1 ring-cyan-100"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Modules
-            </p>
-            <div className="mt-2 space-y-1">
-              {mainItems.slice(1).map((item) => {
-                const Icon = item.icon;
-                const active = isActivePath(pathname, item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onClose}
-                    className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition ${
-                      active
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+            return (
+              <div key={section.title}>
+                <p className="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  {SectionIcon ? <SectionIcon className="h-3.5 w-3.5" /> : null}
+                  {section.title}
+                </p>
+                <div className="mt-2 space-y-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon ? iconMap[item.icon] : null;
+                    const active = isActivePath(pathname, item.href);
+                    return (
+                      <Link
+                        key={`${section.title}-${item.href}-${item.label}`}
+                        href={item.href}
+                        onClick={onClose}
+                        className={`flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
+                          active
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                        } ${Icon ? "" : "pl-9"}`}
+                      >
+                        {Icon ? <Icon className="h-4 w-4 flex-none" /> : null}
+                        <span className="leading-5">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="border-t border-slate-200 p-4">
@@ -167,7 +159,7 @@ export default function Sidebar({ open, onClose }) {
               Supabase Auth
             </div>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Password stays in Supabase Auth, not in public tables.
+              Current menu: {roleLabels[role] || "User"}
             </p>
           </div>
         </div>
