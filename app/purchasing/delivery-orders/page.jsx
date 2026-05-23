@@ -25,7 +25,6 @@ export default function DeliveryOrdersPage() {
         { key: "notes", label: "Notes" }
       ]}
       fields={[
-        { name: "do_number", label: "DO Number", placeholder: "DO-001", nullable: true },
         {
           name: "purchase_order_id",
           label: "Purchase Order",

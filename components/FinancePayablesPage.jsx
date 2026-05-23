@@ -32,7 +32,6 @@ export default function FinancePayablesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
   const [formData, setFormData] = useState({
-    invoice_number: "",
     invoice_date: "",
     due_date: "",
     amount: "",
@@ -93,7 +92,6 @@ export default function FinancePayablesPage() {
   function openPaymentModal(row) {
     setSelectedPo(row);
     setFormData({
-      invoice_number: row.po_number ? row.po_number.replace("PO", "INV") : "",
       invoice_date: new Date().toISOString().slice(0, 10),
       due_date: "",
       amount: row.total_amount || "",
@@ -126,7 +124,6 @@ export default function FinancePayablesPage() {
       .insert({
         purchase_order_id: selectedPo.id,
         supplier_id: selectedPo.supplier_id,
-        invoice_number: formData.invoice_number || null,
         invoice_date: formData.invoice_date || null,
         due_date: formData.due_date || null,
         amount,
@@ -298,7 +295,6 @@ export default function FinancePayablesPage() {
         }
       >
         <form id="payment-form" onSubmit={handlePayment} className="grid gap-4 sm:grid-cols-2">
-          <FormInput label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleInputChange} />
           <FormInput label="Invoice Date" name="invoice_date" type="date" value={formData.invoice_date} onChange={handleInputChange} />
           <FormInput label="Due Date" name="due_date" type="date" value={formData.due_date} onChange={handleInputChange} />
           <FormInput label="Amount" name="amount" type="number" value={formData.amount} onChange={handleInputChange} />

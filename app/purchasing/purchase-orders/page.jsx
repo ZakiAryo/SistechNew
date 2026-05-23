@@ -26,7 +26,6 @@ export default function PurchasingPurchaseOrdersPage() {
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "po_number", label: "PO Number", placeholder: "PO-001", nullable: true },
         {
           name: "purchase_request_id",
           label: "Purchase Request",

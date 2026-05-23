@@ -33,7 +33,6 @@ export default function EngineeringPurchaseRequestsPage() {
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "pr_number", label: "PR Number", placeholder: "PR-001", nullable: true },
         {
           name: "project_id",
           label: "Project",

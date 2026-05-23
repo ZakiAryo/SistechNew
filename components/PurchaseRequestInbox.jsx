@@ -32,7 +32,6 @@ export default function PurchaseRequestInbox() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
   const [formData, setFormData] = useState({
-    po_number: "",
     supplier_id: "",
     order_date: "",
     total_amount: "",
@@ -97,7 +96,6 @@ export default function PurchaseRequestInbox() {
   function openProcessModal(row) {
     setSelectedPr(row);
     setFormData({
-      po_number: row.pr_number ? row.pr_number.replace("PR", "PO") : "",
       supplier_id: "",
       order_date: new Date().toISOString().slice(0, 10),
       total_amount: row.estimated_amount || "",
@@ -123,7 +121,6 @@ export default function PurchaseRequestInbox() {
     const { data: poData, error: poError } = await supabase
       .from("purchase_orders")
       .insert({
-        po_number: formData.po_number || null,
         purchase_request_id: selectedPr.id,
         supplier_id: formData.supplier_id,
         project_id: selectedPr.project_id,
@@ -154,7 +151,6 @@ export default function PurchaseRequestInbox() {
       .eq("id", selectedPr.id);
 
     await supabase.from("delivery_orders").insert({
-      do_number: poData?.po_number ? poData.po_number.replace("PO", "DO") : null,
       purchase_order_id: poData.id,
       status: "waiting"
     });
@@ -283,7 +279,6 @@ export default function PurchaseRequestInbox() {
         }
       >
         <form id="create-po-form" onSubmit={handleCreatePo} className="grid gap-4 sm:grid-cols-2">
-          <FormInput label="PO Number" name="po_number" value={formData.po_number} onChange={handleInputChange} placeholder="PO-001" />
           <FormInput label="Supplier" name="supplier_id" type="select" value={formData.supplier_id} onChange={handleInputChange} options={supplierOptions} required />
           <FormInput label="Order Date" name="order_date" type="date" value={formData.order_date} onChange={handleInputChange} />
           <FormInput label="Total Amount" name="total_amount" type="number" value={formData.total_amount} onChange={handleInputChange} />

@@ -26,7 +26,6 @@ export default function AccountReceivablePage() {
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "invoice_number", label: "Invoice Number", placeholder: "AR-INV-001", required: true },
         {
           name: "project_id",
           label: "Project",
