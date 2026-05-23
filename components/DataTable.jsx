@@ -74,19 +74,28 @@ export default function DataTable({
   detailBasePath,
   documentUrlKey
 }) {
+  const showActions = Boolean(canManage || detailBasePath || documentUrlKey);
+  const actionColumnWidth = showActions ? 128 : 0;
+  const tableMinWidth = Math.max(720, columns.length * 180 + actionColumnWidth);
+  const skeletonColumns = columns.length + (showActions ? 1 : 0);
+
   if (loading) {
     return (
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="space-y-3 p-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="grid grid-cols-5 gap-3">
-              <span className="h-4 rounded bg-slate-100" />
-              <span className="h-4 rounded bg-slate-100" />
-              <span className="h-4 rounded bg-slate-100" />
-              <span className="h-4 rounded bg-slate-100" />
-              <span className="h-4 rounded bg-slate-100" />
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <div className="space-y-3 p-4" style={{ minWidth: tableMinWidth }}>
+            {Array.from({ length: 6 }).map((_, rowIndex) => (
+              <div
+                key={rowIndex}
+                className="grid gap-3"
+                style={{ gridTemplateColumns: `repeat(${skeletonColumns}, minmax(0, 1fr))` }}
+              >
+                {Array.from({ length: skeletonColumns }).map((__, columnIndex) => (
+                  <span key={`${rowIndex}-${columnIndex}`} className="h-4 rounded bg-slate-100" />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -112,7 +121,10 @@ export default function DataTable({
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
+        <table
+          className="table-fixed divide-y divide-slate-200"
+          style={{ minWidth: tableMinWidth, width: "100%" }}
+        >
           <thead className="bg-slate-50">
             <tr>
               {columns.map((column) => (
@@ -120,77 +132,82 @@ export default function DataTable({
                   key={column.key}
                   scope="col"
                   className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
+                  style={{ width: column.width || `${100 / Math.max(columns.length, 1)}%` }}
                 >
                   {column.label}
                 </th>
               ))}
-              <th
-                scope="col"
-                className="w-28 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500"
-              >
-                Actions
-              </th>
+              {showActions ? (
+                <th
+                  scope="col"
+                  className="w-32 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500"
+                >
+                  Actions
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
             {rows.map((row) => (
-              <tr key={row.id} className="hover:bg-slate-50/80">
+              <tr key={row.id} className="h-14 hover:bg-slate-50/80">
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={`max-w-xs whitespace-nowrap px-4 py-3 text-sm text-slate-700 ${
-                      column.className || ""
-                    }`}
+                    className={`px-4 py-3 text-sm text-slate-700 ${column.className || ""}`}
                   >
-                    <div className="truncate">{formatValue(getNestedValue(row, column.key), column)}</div>
+                    <div className="min-w-0 truncate">{formatValue(getNestedValue(row, column.key), column)}</div>
                   </td>
                 ))}
-                <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <div className="inline-flex items-center gap-1">
-                    {detailBasePath ? (
-                      <Link
-                        href={`${detailBasePath}/${row.id}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-cyan-700 hover:bg-cyan-50"
-                        aria-label="Detail record"
-                        title="Detail"
-                      >
-                        <FileSearch className="h-4 w-4" />
-                      </Link>
-                    ) : null}
-                    {documentUrlKey && getNestedValue(row, documentUrlKey) ? (
-                      <a
-                        href={getNestedValue(row, documentUrlKey)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
-                        aria-label="View document"
-                        title="View Contract"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => onEdit(row)}
-                      disabled={!canManage}
-                      aria-label="Edit record"
-                      title={canManage ? "Edit" : "Admin role required"}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={() => onDelete(row)}
-                      disabled={!canManage}
-                      aria-label="Delete record"
-                      title={canManage ? "Delete" : "Admin role required"}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
+                {showActions ? (
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <div className="inline-flex min-w-24 items-center justify-end gap-1">
+                      {detailBasePath ? (
+                        <Link
+                          href={`${detailBasePath}/${row.id}`}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-cyan-700 hover:bg-cyan-50"
+                          aria-label="Detail record"
+                          title="Detail"
+                        >
+                          <FileSearch className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {documentUrlKey && getNestedValue(row, documentUrlKey) ? (
+                        <a
+                          href={getNestedValue(row, documentUrlKey)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                          aria-label="View document"
+                          title="View Contract"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      ) : null}
+                      {canManage ? (
+                        <>
+                          <button
+                            type="button"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
+                            onClick={() => onEdit(row)}
+                            aria-label="Edit record"
+                            title="Edit"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-rose-600 hover:bg-rose-50"
+                            onClick={() => onDelete(row)}
+                            aria-label="Delete record"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
