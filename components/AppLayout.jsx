@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
+import RouteTabs from "./RouteTabs";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { fetchProfileByUserId } from "@/lib/profile";
 
 export default function AppLayout({ children }) {
+  const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isRouteSettling, setIsRouteSettling] = useState(false);
   const [profileState, setProfileState] = useState({
     profile: null,
     loading: true,
@@ -107,8 +111,20 @@ export default function AppLayout({ children }) {
     };
   }, [supabase]);
 
+  useEffect(() => {
+    setIsRouteSettling(true);
+    const timer = window.setTimeout(() => setIsRouteSettling(false), 450);
+
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div
+        className={`fixed left-0 top-0 z-[70] h-0.5 bg-cyan-600 route-progress ${
+          isRouteSettling ? "route-progress-active" : ""
+        }`}
+      />
       <Sidebar
         open={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -124,12 +140,13 @@ export default function AppLayout({ children }) {
           profileLoading={profileState.loading}
         />
         <main className="px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
+          <div key={pathname} className="mx-auto max-w-7xl page-transition">
             {profileState.error ? (
               <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                 {profileState.error}
               </div>
             ) : null}
+            <RouteTabs role={profileState.profile?.role} />
             {children}
           </div>
         </main>

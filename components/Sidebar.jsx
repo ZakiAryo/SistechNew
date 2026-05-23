@@ -102,17 +102,21 @@ export default function Sidebar({ open, onClose, profile, profileError, profileL
                       return (
                         <Link
                           key={`${section.title}-${item.href}-${item.label}`}
-                          href={item.href}
-                          onClick={onClose}
-                          className={`flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                            active
-                              ? "bg-slate-900 text-white"
-                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                          } ${Icon ? "" : "pl-9"}`}
-                        >
-                          {Icon ? <Icon className="h-4 w-4 flex-none" /> : null}
-                          <span className="leading-5">{item.label}</span>
-                        </Link>
+                        href={item.href}
+                        onClick={onClose}
+                        aria-current={active ? "page" : undefined}
+                        className={`group relative flex min-h-10 items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                          active
+                            ? "translate-x-0 bg-slate-900 text-white shadow-sm"
+                            : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-100 hover:text-slate-950"
+                        } ${Icon ? "" : "pl-9"}`}
+                      >
+                        {active ? (
+                          <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-cyan-400" />
+                        ) : null}
+                        {Icon ? <Icon className="h-4 w-4 flex-none" /> : null}
+                        <span className="leading-5">{item.label}</span>
+                      </Link>
                       );
                     })}
                   </div>
