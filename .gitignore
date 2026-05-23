@@ -1,14 +1,9 @@
 node_modules
+package-lock.json
 .npm-cache
 .next
 .env
 .env.local
 .env*.local
-dev-server.out.log
-dev-server.err.log
-dev-persist.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.vercel
+*.log
+vercel
