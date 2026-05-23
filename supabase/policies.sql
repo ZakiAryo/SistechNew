@@ -43,6 +43,9 @@ alter table public.cash_bank_transactions enable row level security;
 alter table public.accounting_entries enable row level security;
 alter table public.audit_logs enable row level security;
 
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
 create policy "profiles_select_own_or_admin"
 on public.profiles
