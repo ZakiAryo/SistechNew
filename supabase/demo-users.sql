@@ -11,6 +11,9 @@ where email = 'marketing@sistech.id';
 update public.profiles set role = 'engineering', full_name = 'Engineering Project User'
 where email = 'engineering@sistech.id';
 
+update public.profiles set role = 'engineering', full_name = 'Engineering Project User'
+where email = 'engineer@sistech.id';
+
 update public.profiles set role = 'purchasing', full_name = 'Purchasing User'
 where email = 'purchasing@sistech.id';
 

@@ -13,6 +13,7 @@ import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
 import { getCurrentProfile } from "@/lib/auth";
+import { roleLabels } from "@/lib/menuConfig";
 import { normalizeRole } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
@@ -150,6 +151,7 @@ async function loadDashboardData() {
 
 export default async function DashboardPage() {
   const { stats, profile, setupError } = await loadDashboardData();
+  const roleKey = normalizeRole(profile?.role);
 
   return (
     <AppLayout>
@@ -159,7 +161,7 @@ export default async function DashboardPage() {
         eyebrow="Overview"
         actions={
           <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-sm font-medium capitalize text-slate-700 ring-1 ring-slate-200">
-            Role: {profile?.role || "Role unavailable"}
+            Role: {roleLabels[roleKey] || profile?.role || "Role unavailable"}
           </span>
         }
       />

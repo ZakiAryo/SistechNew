@@ -3,11 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Menu, UserCircle } from "lucide-react";
+import { roleLabels } from "@/lib/menuConfig";
+import { normalizeRole } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 export default function Topbar({ onOpenSidebar, profile, profileError, profileLoading }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const roleKey = normalizeRole(profile?.role);
+  const roleLabel = roleLabels[roleKey] || profile?.role;
 
   function createClient() {
     try {
@@ -73,7 +77,7 @@ export default function Topbar({ onOpenSidebar, profile, profileError, profileLo
                 }`}
                 title={profileError || undefined}
               >
-                {profileLoading ? "Loading role" : profile?.role || "Role unavailable"}
+                {profileLoading ? "Loading role" : roleLabel || "Role unavailable"}
               </p>
             </div>
           </div>
