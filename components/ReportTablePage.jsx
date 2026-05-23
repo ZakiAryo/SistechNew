@@ -23,17 +23,19 @@ function flattenRows(rows, columns) {
   });
 }
 
+const EMPTY_ARRAY = [];
+
 export default function ReportTablePage({
   title,
   description,
   tableName,
   selectQuery = "*",
   orderBy = "created_at",
-  filters = [],
-  searchColumns,
-  columns,
+  filters = EMPTY_ARRAY,
+  searchColumns = EMPTY_ARRAY,
+  columns = EMPTY_ARRAY,
   eyebrow = "Report",
-  allowedRoles = []
+  allowedRoles = EMPTY_ARRAY
 }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
