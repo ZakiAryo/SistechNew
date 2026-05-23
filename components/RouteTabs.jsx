@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getMenuSectionsForRole } from "@/lib/menuConfig";
@@ -17,30 +18,91 @@ function findActiveSection(sections, pathname) {
 
 export default function RouteTabs({ role }) {
   const pathname = usePathname();
+  const listRef = useRef(null);
+  const tabRefs = useRef([]);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [indicator, setIndicator] = useState({
+    left: 4,
+    width: 0,
+    ready: false
+  });
   const roleKey = normalizeRole(role);
   const sections = getMenuSectionsForRole(roleKey);
   const activeSection = findActiveSection(sections, pathname);
   const items = activeSection?.items || [];
+  const activeIndex = Math.max(
+    0,
+    items.findIndex((item) => isActivePath(pathname, item.href))
+  );
+
+  const updateIndicator = useCallback(() => {
+    const activeElement = tabRefs.current[activeIndex];
+    const listElement = listRef.current;
+
+    if (!activeElement || !listElement) {
+      return;
+    }
+
+    const activeRect = activeElement.getBoundingClientRect();
+    const listRect = listElement.getBoundingClientRect();
+
+    setIndicator({
+      left: activeRect.left - listRect.left + listElement.scrollLeft,
+      width: activeRect.width,
+      ready: true
+    });
+  }, [activeIndex]);
+
+  useLayoutEffect(() => {
+    updateIndicator();
+  }, [items.length, pathname, updateIndicator]);
+
+  useLayoutEffect(() => {
+    window.addEventListener("resize", updateIndicator);
+
+    return () => window.removeEventListener("resize", updateIndicator);
+  }, [updateIndicator]);
 
   if (!activeSection || items.length <= 1 || activeSection.title === "Workspace") {
     return null;
   }
 
   return (
-    <div className="mb-5 overflow-x-auto">
-      <div className="inline-flex min-w-full gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+    <div className="mb-5 overflow-x-auto pb-1">
+      <div
+        ref={listRef}
+        className="relative inline-flex min-w-full gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm"
+        onScroll={updateIndicator}
+      >
+        <span
+          className={`pointer-events-none absolute top-1 h-[calc(100%-0.5rem)] rounded-md bg-slate-900 shadow-sm transition-all duration-300 ease-out ${
+            indicator.ready ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            transform: `translateX(${indicator.left}px)`,
+            width: indicator.width
+          }}
+        />
         {items.map((item) => {
           const active = isActivePath(pathname, item.href);
+          const index = items.indexOf(item);
 
           return (
             <Link
               key={`${activeSection.title}-${item.href}-${item.label}`}
               href={item.href}
-              className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                active
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+              ref={(element) => {
+                tabRefs.current[index] = element;
+              }}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              className={`relative z-10 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                active ? "text-white" : "text-slate-600 hover:text-slate-950"
               }`}
+              style={{
+                backgroundColor:
+                  !active && hoveredIndex === index ? "rgb(241 245 249)" : "transparent"
+              }}
               aria-current={active ? "page" : undefined}
             >
               {item.label}

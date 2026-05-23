@@ -140,14 +140,16 @@ export default function AppLayout({ children }) {
           profileLoading={profileState.loading}
         />
         <main className="px-4 py-6 sm:px-6 lg:px-8">
-          <div key={pathname} className="mx-auto max-w-7xl page-transition">
+          <div className="mx-auto max-w-7xl">
             {profileState.error ? (
               <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                 {profileState.error}
               </div>
             ) : null}
             <RouteTabs role={profileState.profile?.role} />
-            {children}
+            <div key={pathname} className="page-transition">
+              {children}
+            </div>
           </div>
         </main>
       </div>
