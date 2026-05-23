@@ -1,29 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Menu, UserCircle } from "lucide-react";
 import { roleLabels } from "@/lib/menuConfig";
+import { subscribeToNotificationChanges } from "@/lib/notifications";
 import { normalizeRole } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 export default function Topbar({ onOpenSidebar, profile, profileError, profileLoading }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const roleKey = normalizeRole(profile?.role);
   const roleLabel = roleLabels[roleKey] || profile?.role;
 
-  function createClient() {
+  const supabase = useMemo(() => {
     try {
       return createSupabaseBrowserClient();
     } catch {
       return null;
     }
-  }
+  }, []);
+
+  const loadUnreadCount = useCallback(async () => {
+    if (!supabase || !profile?.id || profileLoading || profileError) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const { count, error } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("is_read", false);
+
+    if (!error) {
+      setUnreadCount(count || 0);
+    }
+  }, [profile?.id, profileError, profileLoading, supabase]);
+
+  useEffect(() => {
+    loadUnreadCount();
+  }, [loadUnreadCount]);
+
+  useEffect(() => {
+    if (!supabase || !profile?.id || profileError) {
+      return undefined;
+    }
+
+    const channel = subscribeToNotificationChanges(supabase, {
+      profile,
+      channelName: `topbar-notifications-${profile.id}`,
+      onChange: loadUnreadCount
+    });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [loadUnreadCount, profile, profileError, supabase]);
 
   async function handleLogout() {
-    const supabase = createClient();
-
     if (!supabase) {
       router.push("/login");
       return;
@@ -55,14 +94,19 @@ export default function Topbar({ onOpenSidebar, profile, profileError, profileLo
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="hidden h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 sm:inline-flex"
+          <Link
+            href="/notifications"
+            className="relative hidden h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 sm:inline-flex"
             aria-label="Notifications"
             title="Notifications"
           >
             <Bell className="h-4 w-4" />
-          </button>
+            {unreadCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-600 px-1 text-[11px] font-semibold leading-none text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : null}
+          </Link>
           <div className="hidden items-center gap-3 rounded-md border border-slate-200 px-3 py-2 md:flex">
             <UserCircle className="h-5 w-5 text-slate-500" />
             <div className="max-w-48">

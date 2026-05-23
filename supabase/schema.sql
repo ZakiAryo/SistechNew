@@ -614,6 +614,134 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_auth_user();
 
+create or replace function public.create_role_notification(
+  recipient_role text,
+  notification_module text,
+  notification_record_id uuid,
+  notification_action_url text,
+  notification_title text,
+  notification_message text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  normalized_role text := nullif(lower(trim(recipient_role)), '');
+  inserted_count integer := 0;
+begin
+  if normalized_role is null or notification_title is null then
+    return;
+  end if;
+
+  insert into public.notifications (
+    user_id,
+    target_role,
+    module,
+    record_id,
+    action_url,
+    title,
+    message
+  )
+  select
+    profiles.id,
+    normalized_role,
+    notification_module,
+    notification_record_id,
+    notification_action_url,
+    notification_title,
+    notification_message
+  from public.profiles
+  where profiles.role = normalized_role;
+
+  get diagnostics inserted_count = row_count;
+
+  if inserted_count = 0 then
+    insert into public.notifications (target_role, module, record_id, action_url, title, message)
+    values (
+      normalized_role,
+      notification_module,
+      notification_record_id,
+      notification_action_url,
+      notification_title,
+      notification_message
+    );
+  end if;
+end;
+$$;
+
+grant execute on function public.create_role_notification(text, text, uuid, text, text, text) to authenticated;
+
+create or replace function public.create_user_notification(
+  recipient_user_id uuid,
+  fallback_role text,
+  notification_module text,
+  notification_record_id uuid,
+  notification_action_url text,
+  notification_title text,
+  notification_message text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  normalized_role text := nullif(lower(trim(fallback_role)), '');
+begin
+  if recipient_user_id is null then
+    perform public.create_role_notification(
+      normalized_role,
+      notification_module,
+      notification_record_id,
+      notification_action_url,
+      notification_title,
+      notification_message
+    );
+    return;
+  end if;
+
+  insert into public.notifications (
+    user_id,
+    target_role,
+    module,
+    record_id,
+    action_url,
+    title,
+    message
+  )
+  values (
+    recipient_user_id,
+    normalized_role,
+    notification_module,
+    notification_record_id,
+    notification_action_url,
+    notification_title,
+    notification_message
+  );
+end;
+$$;
+
+grant execute on function public.create_user_notification(uuid, text, text, uuid, text, text, text) to authenticated;
+
+alter table public.notifications replica identity full;
+
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+    and not exists (
+      select 1
+      from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'notifications'
+    ) then
+    execute 'alter publication supabase_realtime add table public.notifications';
+  end if;
+end;
+$$;
+
 create or replace function public.notify_purchase_request_created()
 returns trigger
 language plpgsql
@@ -621,8 +749,7 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.notifications (target_role, module, record_id, action_url, title, message)
-  values (
+  perform public.create_role_notification(
     'purchasing',
     'purchase_requests',
     new.id,
@@ -648,8 +775,8 @@ set search_path = public
 as $$
 begin
   if old.status is distinct from new.status then
-    insert into public.notifications (target_role, module, record_id, action_url, title, message)
-    values (
+    perform public.create_user_notification(
+      new.requested_by,
       'engineering',
       'purchase_requests',
       new.id,
@@ -675,9 +802,8 @@ security definer
 set search_path = public
 as $$
 begin
-  if old.status is distinct from new.status and new.status in ('approved', 'delivered', 'paid') then
-    insert into public.notifications (target_role, module, record_id, action_url, title, message)
-    values (
+  if old.status is distinct from new.status and new.status in ('approved', 'delivered') then
+    perform public.create_role_notification(
       'finance',
       'purchase_orders',
       new.id,
@@ -695,3 +821,30 @@ drop trigger if exists on_purchase_order_status_changed on public.purchase_order
 create trigger on_purchase_order_status_changed
 after update on public.purchase_orders
 for each row execute function public.notify_purchase_order_status_changed();
+
+create or replace function public.notify_purchase_order_payment_status_changed()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if old.payment_status is distinct from new.payment_status then
+    perform public.create_role_notification(
+      'purchasing',
+      'purchase_orders',
+      new.id,
+      '/purchasing/po-vs-payment',
+      'Purchase Order Payment Updated',
+      coalesce(new.po_number, 'Purchase order') || ' payment status is now ' || new.payment_status || '.'
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_purchase_order_payment_status_changed on public.purchase_orders;
+create trigger on_purchase_order_payment_status_changed
+after update on public.purchase_orders
+for each row execute function public.notify_purchase_order_payment_status_changed();

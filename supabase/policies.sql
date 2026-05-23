@@ -300,7 +300,7 @@ for select
 to authenticated
 using (
   user_id = auth.uid()
-  or target_role = public.current_user_role()
+  or (user_id is null and target_role = public.current_user_role())
   or public.current_user_role() = 'admin'
 );
 
@@ -311,12 +311,12 @@ for update
 to authenticated
 using (
   user_id = auth.uid()
-  or target_role = public.current_user_role()
+  or (user_id is null and target_role = public.current_user_role())
   or public.current_user_role() = 'admin'
 )
 with check (
   user_id = auth.uid()
-  or target_role = public.current_user_role()
+  or (user_id is null and target_role = public.current_user_role())
   or public.current_user_role() = 'admin'
 );
 
