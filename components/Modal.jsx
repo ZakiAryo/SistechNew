@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function Modal({ open, title, description, children, footer, onClose }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === "Escape") {
@@ -18,12 +25,25 @@ export default function Modal({ open, title, description, children, footer, onCl
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
-  if (!open) {
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  if (!open || !mounted) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-4 py-6">
       <div className="absolute inset-0 bg-slate-950/50" onClick={onClose} />
       <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-soft">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
@@ -44,6 +64,7 @@ export default function Modal({ open, title, description, children, footer, onCl
         <div className="max-h-[calc(90vh-9rem)] overflow-y-auto px-5 py-5">{children}</div>
         {footer ? <div className="border-t border-slate-200 px-5 py-4">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
