@@ -89,11 +89,11 @@ export default function RouteTabs({ role }) {
     <div className="mb-5 overflow-x-auto pb-1">
       <div
         ref={listRef}
-        className="relative inline-flex min-w-full gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm"
+        className="relative inline-flex min-w-full gap-1 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm"
         onScroll={updateIndicator}
       >
         <span
-          className={`pointer-events-none absolute top-1 h-[calc(100%-0.5rem)] rounded-md bg-slate-900 shadow-sm transition-all duration-300 ease-out ${
+          className={`pointer-events-none absolute top-1.5 h-[calc(100%-0.75rem)] rounded-md bg-slate-900 shadow-sm transition-all duration-300 ease-out ${
             indicator.ready ? "opacity-100" : "opacity-0"
           }`}
           style={{
@@ -114,7 +114,7 @@ export default function RouteTabs({ role }) {
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
               onClick={() => setPendingIndex(index)}
-              className={`relative z-10 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+              className={`relative z-10 flex min-h-9 items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-semibold transition-colors duration-200 ${
                 active ? "text-white" : "text-slate-600 hover:text-slate-950"
               }`}
               style={{
