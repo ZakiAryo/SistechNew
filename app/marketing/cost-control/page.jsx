@@ -5,6 +5,7 @@ export default function CostControlPage() {
     <ReportTablePage
       title="Project Cost Control"
       description="Budget vs actual report from realtime project budget transactions."
+      allowedRoles={["marketing"]}
       tableName="project_budgets"
       selectQuery="*, projects(project_code, project_name), cost_codes(code, name)"
       searchColumns={["projects.project_code", "projects.project_name", "cost_codes.code", "cost_codes.name", "notes"]}

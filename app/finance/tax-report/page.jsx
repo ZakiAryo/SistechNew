@@ -5,6 +5,7 @@ export default function TaxReportPage() {
     <ReportTablePage
       title="Tax Report"
       description="Initial tax report view based on invoices and finance transactions."
+      allowedRoles={["finance"]}
       tableName="invoices"
       selectQuery="*, customers(customer_code, name), projects(project_code, project_name)"
       searchColumns={["invoice_number", "customers.name", "projects.project_code", "status"]}

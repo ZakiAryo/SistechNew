@@ -5,6 +5,7 @@ export default function AuditLogsPage() {
     <ReportTablePage
       title="Audit Logs"
       description="User activity logs for create, update, delete, workflow conversion, and payment processing."
+      allowedRoles={["admin"]}
       tableName="audit_logs"
       selectQuery="*, profiles(full_name, email, role)"
       searchColumns={["action", "module", "table_name", "profiles.email", "profiles.role"]}

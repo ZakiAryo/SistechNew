@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { canRoleAccessPath } from "./lib/menuConfig";
 
 const protectedRoutes = [
   "/dashboard",
@@ -56,6 +57,18 @@ export async function middleware(request) {
   if (!user && (isProtectedRoute || isRootRoute)) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (user && isProtectedRoute && pathname !== "/dashboard") {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!profileError && profile?.role && !canRoleAccessPath(profile.role, pathname)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   return response;

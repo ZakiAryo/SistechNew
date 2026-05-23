@@ -5,6 +5,7 @@ export default function PoVsPaymentPage() {
     <ReportTablePage
       title="PO vs Payment"
       description="Realtime purchasing report comparing purchase order amount and payment status from Finance."
+      allowedRoles={["purchasing"]}
       tableName="purchase_orders"
       selectQuery="*, suppliers(supplier_code, name), projects(project_code, project_name)"
       searchColumns={["po_number", "suppliers.name", "projects.project_code", "status", "payment_status"]}

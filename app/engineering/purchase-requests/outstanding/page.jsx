@@ -5,6 +5,7 @@ export default function EngineeringPrOutstandingPage() {
     <ReportTablePage
       title="Purchase Request List Outstanding"
       description="Realtime status table for Engineering purchase requests: Pending, Processed, and Approved."
+      allowedRoles={["engineering"]}
       tableName="purchase_requests"
       selectQuery="*, projects(project_code, project_name)"
       filters={[{ column: "status", operator: "in", value: ["pending", "processed", "approved"] }]}

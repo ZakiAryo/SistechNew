@@ -5,6 +5,7 @@ export default function ReconcileBankPage() {
     <ReportTablePage
       title="Reconcile Bank"
       description="Cash and bank transaction report for reconciliation."
+      allowedRoles={["finance"]}
       tableName="cash_bank_transactions"
       searchColumns={["description", "transaction_type", "source_module", "bank_account", "status"]}
       columns={[

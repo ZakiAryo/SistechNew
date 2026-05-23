@@ -5,6 +5,7 @@ export default function AccountingReportPage() {
     <ReportTablePage
       title="Accounting Report"
       description="Accounting entries generated from AP, AR, cash, and bank activities."
+      allowedRoles={["finance"]}
       tableName="accounting_entries"
       searchColumns={["source_module", "account_code", "description"]}
       columns={[

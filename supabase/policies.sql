@@ -80,7 +80,7 @@ create policy "customers_authenticated_read"
 on public.customers
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'marketing', 'finance']));
 
 drop policy if exists "customers_admin_insert" on public.customers;
 create policy "customers_admin_insert"
@@ -117,7 +117,7 @@ create policy "suppliers_authenticated_read"
 on public.suppliers
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
 
 drop policy if exists "suppliers_admin_insert" on public.suppliers;
 create policy "suppliers_admin_insert"
@@ -154,7 +154,7 @@ create policy "projects_authenticated_read"
 on public.projects
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'marketing', 'engineering', 'purchasing', 'finance']));
 
 drop policy if exists "projects_admin_insert" on public.projects;
 create policy "projects_admin_insert"
@@ -191,7 +191,7 @@ create policy "cost_codes_authenticated_read"
 on public.cost_codes
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'marketing', 'engineering']));
 
 drop policy if exists "cost_codes_admin_insert" on public.cost_codes;
 create policy "cost_codes_admin_insert"
@@ -228,7 +228,7 @@ create policy "purchase_requests_authenticated_read"
 on public.purchase_requests
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'engineering', 'purchasing']));
 
 drop policy if exists "purchase_requests_admin_manage" on public.purchase_requests;
 create policy "purchase_requests_admin_manage"
@@ -251,7 +251,7 @@ create policy "purchase_orders_authenticated_read"
 on public.purchase_orders
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
 
 drop policy if exists "purchase_orders_admin_manage" on public.purchase_orders;
 create policy "purchase_orders_admin_manage"
@@ -274,7 +274,7 @@ create policy "invoices_authenticated_read"
 on public.invoices
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'finance']));
 
 drop policy if exists "invoices_admin_manage" on public.invoices;
 create policy "invoices_admin_manage"
@@ -338,7 +338,7 @@ create policy "contracts_authenticated_read"
 on public.contracts
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'marketing']));
 
 drop policy if exists "contracts_marketing_manage" on public.contracts;
 create policy "contracts_marketing_manage"
@@ -353,7 +353,7 @@ create policy "project_cost_codes_authenticated_read"
 on public.project_cost_codes
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'marketing']));
 
 drop policy if exists "project_cost_codes_marketing_manage" on public.project_cost_codes;
 create policy "project_cost_codes_marketing_manage"
@@ -368,7 +368,7 @@ create policy "project_budgets_authenticated_read"
 on public.project_budgets
 for select
 to authenticated
-using (true);
+using (public.current_user_has_role(array['admin', 'marketing']));
 
 drop policy if exists "project_budgets_marketing_manage" on public.project_budgets;
 create policy "project_budgets_marketing_manage"

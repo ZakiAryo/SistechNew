@@ -5,6 +5,7 @@ export default function ApAgingPage() {
     <ReportTablePage
       title="List AP Aging"
       description="Account payable aging report from approved purchasing transactions."
+      allowedRoles={["finance"]}
       tableName="account_payables"
       selectQuery="*, suppliers(supplier_code, name), purchase_orders(po_number)"
       searchColumns={["invoice_number", "suppliers.name", "purchase_orders.po_number", "status"]}
