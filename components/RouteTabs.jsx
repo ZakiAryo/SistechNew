@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getMenuSectionsForRole } from "@/lib/menuConfig";
@@ -16,11 +16,27 @@ function findActiveSection(sections, pathname) {
   );
 }
 
+function findActiveIndex(items, pathname) {
+  const exactIndex = items.findIndex((item) => pathname === item.href);
+
+  if (exactIndex >= 0) {
+    return exactIndex;
+  }
+
+  const prefixMatches = items
+    .map((item, index) => ({ index, href: item.href }))
+    .filter((item) => pathname.startsWith(`${item.href}/`))
+    .sort((a, b) => b.href.length - a.href.length);
+
+  return prefixMatches[0]?.index ?? 0;
+}
+
 export default function RouteTabs({ role }) {
   const pathname = usePathname();
   const listRef = useRef(null);
   const tabRefs = useRef([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [pendingIndex, setPendingIndex] = useState(null);
   const [indicator, setIndicator] = useState({
     left: 4,
     width: 0,
@@ -30,13 +46,11 @@ export default function RouteTabs({ role }) {
   const sections = getMenuSectionsForRole(roleKey);
   const activeSection = findActiveSection(sections, pathname);
   const items = activeSection?.items || [];
-  const activeIndex = Math.max(
-    0,
-    items.findIndex((item) => isActivePath(pathname, item.href))
-  );
+  const activeIndex = findActiveIndex(items, pathname);
+  const visibleIndex = pendingIndex ?? activeIndex;
 
   const updateIndicator = useCallback(() => {
-    const activeElement = tabRefs.current[activeIndex];
+    const activeElement = tabRefs.current[visibleIndex];
     const listElement = listRef.current;
 
     if (!activeElement || !listElement) {
@@ -51,11 +65,15 @@ export default function RouteTabs({ role }) {
       width: activeRect.width,
       ready: true
     });
-  }, [activeIndex]);
+  }, [visibleIndex]);
 
   useLayoutEffect(() => {
     updateIndicator();
   }, [items.length, pathname, updateIndicator]);
+
+  useEffect(() => {
+    setPendingIndex(null);
+  }, [pathname]);
 
   useLayoutEffect(() => {
     window.addEventListener("resize", updateIndicator);
@@ -83,9 +101,8 @@ export default function RouteTabs({ role }) {
             width: indicator.width
           }}
         />
-        {items.map((item) => {
-          const active = isActivePath(pathname, item.href);
-          const index = items.indexOf(item);
+        {items.map((item, index) => {
+          const active = index === visibleIndex;
 
           return (
             <Link
@@ -96,6 +113,7 @@ export default function RouteTabs({ role }) {
               }}
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => setPendingIndex(index)}
               className={`relative z-10 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 ${
                 active ? "text-white" : "text-slate-600 hover:text-slate-950"
               }`}
@@ -103,7 +121,7 @@ export default function RouteTabs({ role }) {
                 backgroundColor:
                   !active && hoveredIndex === index ? "rgb(241 245 249)" : "transparent"
               }}
-              aria-current={active ? "page" : undefined}
+              aria-current={index === activeIndex ? "page" : undefined}
             >
               {item.label}
             </Link>
