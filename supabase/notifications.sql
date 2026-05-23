@@ -212,6 +212,33 @@ create trigger on_purchase_request_status_changed
 after update on public.purchase_requests
 for each row execute function public.notify_purchase_request_status_changed();
 
+create or replace function public.notify_purchase_order_created()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status in ('approved', 'delivered') then
+    perform public.create_role_notification(
+      'finance',
+      'purchase_orders',
+      new.id,
+      '/finance/account-payable',
+      'Purchase Order Ready for Finance',
+      coalesce(new.po_number, 'Purchase order') || ' status is ' || new.status || ' and is ready for payment processing.'
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_purchase_order_created on public.purchase_orders;
+create trigger on_purchase_order_created
+after insert on public.purchase_orders
+for each row execute function public.notify_purchase_order_created();
+
 create or replace function public.notify_purchase_order_status_changed()
 returns trigger
 language plpgsql
