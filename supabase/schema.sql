@@ -109,6 +109,27 @@ create table if not exists public.notifications (
   created_at timestamptz default now()
 );
 
+alter table public.notifications
+  add column if not exists target_role text,
+  add column if not exists module text,
+  add column if not exists record_id uuid,
+  add column if not exists action_url text;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'notifications_target_role_check'
+      and conrelid = 'public.notifications'::regclass
+  ) then
+    alter table public.notifications
+      add constraint notifications_target_role_check
+      check (target_role in ('admin', 'marketing', 'purchasing', 'finance', 'engineering', 'user'));
+  end if;
+end;
+$$;
+
 alter table public.projects
   add column if not exists created_by uuid references public.profiles(id) on delete set null,
   add column if not exists estimated_budget numeric(15,2) default 0,
