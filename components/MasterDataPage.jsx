@@ -9,6 +9,7 @@ import FormInput from "./FormInput";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
 import { writeAuditLog } from "@/lib/audit";
+import { fetchProfileByUserId } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 function getNestedValue(row, key) {
@@ -153,13 +154,15 @@ export default function MasterDataPage({
 
     setCurrentUser(user);
 
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name, email, role")
-      .eq("id", user.id)
-      .maybeSingle();
+    const { profile: currentProfile, error: profileError } = await fetchProfileByUserId(supabase, user.id);
 
-    setProfile(data || { email: user.email, role: "user" });
+    if (profileError) {
+      setProfile(null);
+      setError(profileError.message);
+      return;
+    }
+
+    setProfile(currentProfile);
   }, [supabase]);
 
   const loadLookups = useCallback(async () => {

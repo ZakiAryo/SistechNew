@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,8 +15,8 @@ import {
   Wrench,
   X
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { getMenuSectionsForRole, roleLabels } from "@/lib/menuConfig";
+import { normalizeRole } from "@/lib/profile";
 
 const iconMap = {
   dashboard: BarChart3,
@@ -35,50 +34,11 @@ function isActivePath(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function Sidebar({ open, onClose }) {
+export default function Sidebar({ open, onClose, profile, profileError, profileLoading }) {
   const pathname = usePathname();
-  const [role, setRole] = useState("user");
-  const menuSections = getMenuSectionsForRole(role);
-  const supabase = useMemo(() => {
-    try {
-      return createSupabaseBrowserClient();
-    } catch {
-      return null;
-    }
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadRole() {
-      if (!supabase) {
-        return;
-      }
-
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-
-      if (!user) {
-        return;
-      }
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (active && data?.role) {
-        setRole(data.role);
-      }
-    }
-
-    loadRole();
-
-    return () => {
-      active = false;
-    };
-  }, [supabase]);
+  const role = profile?.role || "";
+  const roleKey = normalizeRole(role);
+  const menuSections = getMenuSectionsForRole(roleKey);
 
   return (
     <>
@@ -117,39 +77,53 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
-          {menuSections.map((section) => {
-            const SectionIcon = section.icon ? iconMap[section.icon] : null;
+          {profileLoading ? (
+            <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+              Loading role menu
+            </p>
+          ) : profileError ? (
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              Menu unavailable until public.profiles is fixed.
+            </p>
+          ) : menuSections.length ? (
+            menuSections.map((section) => {
+              const SectionIcon = section.icon ? iconMap[section.icon] : null;
 
-            return (
-              <div key={section.title}>
-                <p className="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  {SectionIcon ? <SectionIcon className="h-3.5 w-3.5" /> : null}
-                  {section.title}
-                </p>
-                <div className="mt-2 space-y-1">
-                  {section.items.map((item) => {
-                    const Icon = item.icon ? iconMap[item.icon] : null;
-                    const active = isActivePath(pathname, item.href);
-                    return (
-                      <Link
-                        key={`${section.title}-${item.href}-${item.label}`}
-                        href={item.href}
-                        onClick={onClose}
-                        className={`flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
-                          active
-                            ? "bg-slate-900 text-white"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                        } ${Icon ? "" : "pl-9"}`}
-                      >
-                        {Icon ? <Icon className="h-4 w-4 flex-none" /> : null}
-                        <span className="leading-5">{item.label}</span>
-                      </Link>
-                    );
-                  })}
+              return (
+                <div key={section.title}>
+                  <p className="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    {SectionIcon ? <SectionIcon className="h-3.5 w-3.5" /> : null}
+                    {section.title}
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {section.items.map((item) => {
+                      const Icon = item.icon ? iconMap[item.icon] : null;
+                      const active = isActivePath(pathname, item.href);
+                      return (
+                        <Link
+                          key={`${section.title}-${item.href}-${item.label}`}
+                          href={item.href}
+                          onClick={onClose}
+                          className={`flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
+                            active
+                              ? "bg-slate-900 text-white"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                          } ${Icon ? "" : "pl-9"}`}
+                        >
+                          {Icon ? <Icon className="h-4 w-4 flex-none" /> : null}
+                          <span className="leading-5">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              No sidebar menu is configured for role: {role || "missing role"}.
+            </p>
+          )}
         </nav>
 
         <div className="border-t border-slate-200 p-4">
@@ -159,7 +133,12 @@ export default function Sidebar({ open, onClose }) {
               Supabase Auth
             </div>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Current menu: {roleLabels[role] || "User"}
+              Current menu:{" "}
+              {profileLoading
+                ? "Loading role"
+                : profileError
+                  ? "Profile error"
+                  : roleLabels[roleKey] || role || "Role unavailable"}
             </p>
           </div>
         </div>

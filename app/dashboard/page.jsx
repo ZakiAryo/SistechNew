@@ -13,6 +13,7 @@ import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
 import { getCurrentProfile } from "@/lib/auth";
+import { normalizeRole } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -86,13 +87,29 @@ const dashboardStatsByRole = {
 };
 
 async function loadDashboardData() {
-  const emptyStats = dashboardStatsByRole.user.map((item) => ({ ...item, value: 0 }));
-
   try {
     const supabase = await createSupabaseServerClient();
-    const { profile } = await getCurrentProfile(supabase);
+    const { profile, error: profileError } = await getCurrentProfile(supabase);
 
-    const definitions = dashboardStatsByRole[profile?.role || "user"] || dashboardStatsByRole.user;
+    if (profileError) {
+      return {
+        stats: [],
+        profile: null,
+        setupError: profileError.message
+      };
+    }
+
+    const role = normalizeRole(profile?.role);
+    const definitions = dashboardStatsByRole[role];
+
+    if (!definitions) {
+      return {
+        stats: [],
+        profile,
+        setupError: `No dashboard is configured for role "${profile?.role || "missing role"}". Check public.profiles.role.`
+      };
+    }
+
     const stats = await Promise.all(
       definitions.map(async (item) => {
         let query = supabase.from(item.table).select("id", { count: "exact", head: true });
@@ -124,7 +141,7 @@ async function loadDashboardData() {
     };
   } catch (error) {
     return {
-      stats: emptyStats,
+      stats: [],
       profile: null,
       setupError: error.message || "Unable to load dashboard data."
     };
@@ -142,7 +159,7 @@ export default async function DashboardPage() {
         eyebrow="Overview"
         actions={
           <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-sm font-medium capitalize text-slate-700 ring-1 ring-slate-200">
-            Role: {profile?.role || "user"}
+            Role: {profile?.role || "Role unavailable"}
           </span>
         }
       />
@@ -156,7 +173,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (
           <StatCard
-            key={stat.table}
+            key={`${stat.table}-${stat.label}`}
             label={stat.label}
             value={stat.value}
             icon={stat.icon}
@@ -164,6 +181,12 @@ export default async function DashboardPage() {
           />
         ))}
       </div>
+
+      {!setupError && !stats.length ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500">
+          No dashboard statistics are available for this profile role.
+        </div>
+      ) : null}
     </AppLayout>
   );
 }

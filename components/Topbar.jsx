@@ -1,56 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Menu, UserCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
-export default function Topbar({ onOpenSidebar }) {
+export default function Topbar({ onOpenSidebar, profile, profileError, profileLoading }) {
   const router = useRouter();
-  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const supabase = useMemo(() => {
+
+  function createClient() {
     try {
       return createSupabaseBrowserClient();
     } catch {
       return null;
     }
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadProfile() {
-      if (!supabase) {
-        return;
-      }
-
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
-
-      if (!user || !active) {
-        return;
-      }
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, email, role")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (active) {
-        setProfile(data || { email: user.email, role: "user" });
-      }
-    }
-
-    loadProfile();
-
-    return () => {
-      active = false;
-    };
-  }, [supabase]);
+  }
 
   async function handleLogout() {
+    const supabase = createClient();
+
     if (!supabase) {
       router.push("/login");
       return;
@@ -94,9 +63,18 @@ export default function Topbar({ onOpenSidebar }) {
             <UserCircle className="h-5 w-5 text-slate-500" />
             <div className="max-w-48">
               <p className="truncate text-sm font-medium text-slate-800">
-                {profile?.full_name || profile?.email || "Authenticated user"}
+                {profileLoading
+                  ? "Loading profile"
+                  : profile?.full_name || profile?.email || "Profile unavailable"}
               </p>
-              <p className="truncate text-xs capitalize text-slate-500">{profile?.role || "user"}</p>
+              <p
+                className={`truncate text-xs capitalize ${
+                  profileError ? "text-rose-600" : "text-slate-500"
+                }`}
+                title={profileError || undefined}
+              >
+                {profileLoading ? "Loading role" : profile?.role || "Role unavailable"}
+              </p>
             </div>
           </div>
           <button
