@@ -167,6 +167,7 @@ export default function FinancePayablesPage() {
   const [rows, setRows] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [availablePos, setAvailablePos] = useState([]);
+  const [readyPos, setReadyPos] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [editingAp, setEditingAp] = useState(null);
@@ -176,6 +177,7 @@ export default function FinancePayablesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [poLoading, setPoLoading] = useState(false);
+  const [readyPoLoading, setReadyPoLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
@@ -277,6 +279,47 @@ export default function FinancePayablesPage() {
     setSuppliers(data || []);
   }, [supabase]);
 
+  const loadReadyPurchaseOrders = useCallback(async () => {
+    if (!supabase) {
+      setReadyPoLoading(false);
+      return;
+    }
+
+    setReadyPoLoading(true);
+
+    const { data: poData, error: poError } = await supabase
+      .from("purchase_orders")
+      .select(PO_SELECT)
+      .in("status", ["approved", "delivered"])
+      .order("order_date", { ascending: false });
+
+    if (poError) {
+      setToast(poError.message);
+      setReadyPos([]);
+      setReadyPoLoading(false);
+      return;
+    }
+
+    const [{ data: apItemData }, { data: legacyApData }] = await Promise.all([
+      supabase
+        .from("account_payable_items")
+        .select("purchase_order_id")
+        .not("purchase_order_id", "is", null),
+      supabase
+        .from("account_payables")
+        .select("purchase_order_id")
+        .not("purchase_order_id", "is", null)
+    ]);
+
+    const usedPoIds = new Set([
+      ...(apItemData || []).map((item) => item.purchase_order_id),
+      ...(legacyApData || []).map((item) => item.purchase_order_id)
+    ]);
+
+    setReadyPos((poData || []).filter((po) => !usedPoIds.has(po.id)));
+    setReadyPoLoading(false);
+  }, [supabase]);
+
   const loadProfile = useCallback(async () => {
     if (!supabase) {
       return;
@@ -337,9 +380,10 @@ export default function FinancePayablesPage() {
 
   useEffect(() => {
     loadProfile();
+    loadReadyPurchaseOrders();
     loadSuppliers();
     loadRows();
-  }, [loadProfile, loadRows, loadSuppliers]);
+  }, [loadProfile, loadReadyPurchaseOrders, loadRows, loadSuppliers]);
 
   useEffect(() => {
     if (!toast) {
@@ -361,6 +405,19 @@ export default function FinancePayablesPage() {
   function openCreateForm() {
     resetForm();
     setIsFormOpen(true);
+  }
+
+  async function openCreateFormFromPo(po) {
+    setEditingAp(null);
+    setFormData({
+      ...createInitialForm(),
+      supplier_id: po.supplier_id || "",
+      description: `AP for ${po.po_number || "purchase order"}`
+    });
+    setSelectedItems([createItemFromPo(po, "IDR")]);
+    setFormErrors({});
+    setIsFormOpen(true);
+    await loadPurchaseOrders(po.supplier_id, [po.id]);
   }
 
   async function openEditForm(row) {
@@ -663,6 +720,7 @@ export default function FinancePayablesPage() {
     resetForm();
     setSubmitting(false);
     await loadRows();
+    await loadReadyPurchaseOrders();
   }
 
   return (
@@ -747,6 +805,69 @@ export default function FinancePayablesPage() {
           className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           title="Filter due date before"
         />
+      </div>
+
+      <div className="mb-5 overflow-hidden rounded-lg border border-cyan-100 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">PO Ready for AP</h2>
+            <p className="text-xs text-slate-500">
+              Approved or delivered purchase orders that have not been converted to Account Payable.
+            </p>
+          </div>
+          <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700">
+            {readyPoLoading ? "Loading" : `${readyPos.length} ready`}
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-[900px] divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                {["PO Number", "Supplier", "Project", "PO Date", "Amount", "Status", "Action"].map((header) => (
+                  <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {readyPoLoading ? (
+                <tr>
+                  <td className="px-4 py-5 text-sm text-slate-500" colSpan={7}>
+                    Loading ready purchase orders...
+                  </td>
+                </tr>
+              ) : readyPos.length ? (
+                readyPos.map((po) => (
+                  <tr key={po.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{po.po_number || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{po.suppliers?.name || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{po.projects?.project_name || po.projects?.project_code || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(po.order_date)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatCurrency(po.total_amount, "IDR")}</td>
+                    <td className="px-4 py-3 text-sm"><StatusBadge status={po.status} /></td>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        type="button"
+                        className="inline-flex h-8 items-center rounded-md bg-slate-900 px-3 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => openCreateFormFromPo(po)}
+                        disabled={!canManage}
+                      >
+                        Create AP
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-4 py-5 text-sm text-slate-500" colSpan={7}>
+                    No approved or delivered PO waiting for AP.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
