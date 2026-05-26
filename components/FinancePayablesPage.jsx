@@ -149,6 +149,20 @@ function createItemFromExisting(item, currency) {
   };
 }
 
+function createItemFromLegacyPayable(row, po) {
+  const baseItem = createItemFromPo(po, row.currency || "IDR");
+
+  return {
+    ...baseItem,
+    invoice_number: row.invoice_number || "",
+    invoice_date: row.invoice_date || "",
+    amount: Number(row.subtotal || row.amount || po.total_amount || 0),
+    tax_amount: Number(row.tax_amount || 0),
+    total_amount: Number(row.total_amount || row.amount || po.total_amount || 0),
+    status: row.status || "draft"
+  };
+}
+
 export default function FinancePayablesPage() {
   const [rows, setRows] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -287,7 +301,7 @@ export default function FinancePayablesPage() {
   }, [supabase]);
 
   const loadPurchaseOrders = useCallback(
-    async (supplierId) => {
+    async (supplierId, includePoIds = []) => {
       if (!supabase || !supplierId) {
         setAvailablePos([]);
         return;
@@ -295,12 +309,19 @@ export default function FinancePayablesPage() {
 
       setPoLoading(true);
 
-      const { data, error: queryError } = await supabase
+      let query = supabase
         .from("purchase_orders")
         .select(PO_SELECT)
         .eq("supplier_id", supplierId)
-        .in("status", ["approved", "delivered"])
         .order("order_date", { ascending: false });
+
+      if (includePoIds.length) {
+        query = query.or(`status.in.(approved,delivered),id.in.(${includePoIds.join(",")})`);
+      } else {
+        query = query.in("status", ["approved", "delivered"]);
+      }
+
+      const { data, error: queryError } = await query;
 
       if (queryError) {
         setToast(queryError.message);
@@ -343,6 +364,24 @@ export default function FinancePayablesPage() {
   }
 
   async function openEditForm(row) {
+    const existingItems = (row.account_payable_items || []).map((item) =>
+      createItemFromExisting(item, row.currency || "IDR")
+    );
+
+    let selectedExistingItems = existingItems;
+
+    if (!selectedExistingItems.length && row.purchase_order_id && supabase) {
+      const { data: linkedPo } = await supabase
+        .from("purchase_orders")
+        .select(PO_SELECT)
+        .eq("id", row.purchase_order_id)
+        .single();
+
+      if (linkedPo) {
+        selectedExistingItems = [createItemFromLegacyPayable(row, linkedPo)];
+      }
+    }
+
     setEditingAp(row);
     setFormData({
       supplier_id: row.supplier_id || "",
@@ -358,10 +397,13 @@ export default function FinancePayablesPage() {
       currency: row.currency || "IDR",
       status: row.status || "draft"
     });
-    setSelectedItems((row.account_payable_items || []).map((item) => createItemFromExisting(item, row.currency || "IDR")));
+    setSelectedItems(selectedExistingItems);
     setFormErrors({});
     setIsFormOpen(true);
-    await loadPurchaseOrders(row.supplier_id);
+    await loadPurchaseOrders(
+      row.supplier_id,
+      selectedExistingItems.map((item) => item.purchase_order_id).filter(Boolean)
+    );
   }
 
   function handleInputChange(event) {
@@ -380,16 +422,16 @@ export default function FinancePayablesPage() {
   }
 
   function togglePurchaseOrder(po) {
-    if (!["approved", "delivered"].includes(po.status)) {
-      setToast("Only approved or delivered purchase orders can be used for AP.");
-      return;
-    }
-
     setSelectedItems((current) => {
       const exists = current.some((item) => item.purchase_order_id === po.id);
 
       if (exists) {
         return current.filter((item) => item.purchase_order_id !== po.id);
+      }
+
+      if (!["approved", "delivered"].includes(po.status)) {
+        setToast("Only approved or delivered purchase orders can be added to AP.");
+        return current;
       }
 
       return [...current, createItemFromPo(po, formData.currency || "IDR")];
