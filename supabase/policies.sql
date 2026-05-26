@@ -38,6 +38,7 @@ alter table public.purchase_request_items enable row level security;
 alter table public.purchase_order_items enable row level security;
 alter table public.delivery_orders enable row level security;
 alter table public.account_payables enable row level security;
+alter table public.account_payable_items enable row level security;
 alter table public.account_receivables enable row level security;
 alter table public.cash_bank_transactions enable row level security;
 alter table public.accounting_entries enable row level security;
@@ -192,7 +193,7 @@ create policy "cost_codes_authenticated_read"
 on public.cost_codes
 for select
 to authenticated
-using (public.current_user_has_role(array['admin', 'marketing', 'engineering']));
+using (public.current_user_has_role(array['admin', 'marketing', 'engineering', 'purchasing', 'finance']));
 
 drop policy if exists "cost_codes_admin_insert" on public.cost_codes;
 create policy "cost_codes_admin_insert"
@@ -414,6 +415,21 @@ with check (public.current_user_has_role(array['admin', 'finance']));
 drop policy if exists "account_payables_purchasing_read" on public.account_payables;
 create policy "account_payables_purchasing_read"
 on public.account_payables
+for select
+to authenticated
+using (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
+
+drop policy if exists "account_payable_items_finance_manage" on public.account_payable_items;
+create policy "account_payable_items_finance_manage"
+on public.account_payable_items
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
+drop policy if exists "account_payable_items_purchasing_read" on public.account_payable_items;
+create policy "account_payable_items_purchasing_read"
+on public.account_payable_items
 for select
 to authenticated
 using (public.current_user_has_role(array['admin', 'purchasing', 'finance']));
