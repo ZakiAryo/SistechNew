@@ -223,6 +223,9 @@ create table if not exists public.purchase_order_items (
   created_at timestamptz default now()
 );
 
+alter table public.purchase_order_items
+  add column if not exists cost_code_id uuid references public.cost_codes(id) on delete set null;
+
 create table if not exists public.delivery_orders (
   id uuid primary key default gen_random_uuid(),
   do_number text unique,

@@ -32,8 +32,7 @@ const DETAIL_SELECT = `
     tax_amount,
     total_amount,
     currency,
-    status,
-    cost_codes(code, name)
+    status
   )
 `;
 

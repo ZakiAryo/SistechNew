@@ -19,6 +19,9 @@ alter table public.account_payables
   add column if not exists created_by uuid references public.profiles(id) on delete set null,
   add column if not exists updated_by uuid references public.profiles(id) on delete set null;
 
+alter table public.purchase_order_items
+  add column if not exists cost_code_id uuid references public.cost_codes(id) on delete set null;
+
 update public.account_payables
 set status = case
   when status in ('unpaid', 'partial') then 'waiting_payment'

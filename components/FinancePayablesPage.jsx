@@ -43,8 +43,7 @@ const AP_SELECT = `
     tax_amount,
     total_amount,
     currency,
-    status,
-    cost_codes(code, name)
+    status
   )
 `;
 
@@ -58,8 +57,7 @@ const PO_SELECT = `
   project_id,
   suppliers(supplier_code, name, address),
   projects(id, project_code, project_name),
-  delivery_orders(id, do_number, delivery_date, status),
-  purchase_order_items(cost_code_id, cost_codes(id, code, name))
+  delivery_orders(id, do_number, delivery_date, status)
 `;
 
 function createInitialForm() {
