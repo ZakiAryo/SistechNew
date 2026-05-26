@@ -817,22 +817,23 @@ export default function FinancePayablesPage() {
             {readyPoLoading ? "Loading" : `${readyPos.length} ready`}
           </span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-[1040px] divide-y divide-slate-200">
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed divide-y divide-slate-200">
+            <colgroup>
+              <col className="w-[12%]" />
+              <col className="w-[17%]" />
+              <col className="w-[25%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+            </colgroup>
             <thead className="bg-slate-50">
               <tr>
                 {["PO Number", "Supplier", "Project", "PO Date", "Amount", "Status", "Action"].map((header) => (
                   <th
                     key={header}
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
-                    style={{
-                      width:
-                        header === "Project"
-                          ? "22%"
-                          : header === "Action"
-                            ? "12%"
-                            : "13%"
-                    }}
+                    className="truncate px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
                   >
                     {header}
                   </th>
@@ -842,23 +843,23 @@ export default function FinancePayablesPage() {
             <tbody className="divide-y divide-slate-100">
               {readyPoLoading ? (
                 <tr>
-                  <td className="px-4 py-5 text-sm text-slate-500" colSpan={7}>
+                  <td className="px-3 py-5 text-sm text-slate-500" colSpan={7}>
                     Loading ready purchase orders...
                   </td>
                 </tr>
               ) : readyPos.length ? (
                 readyPos.map((po) => (
                   <tr key={po.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{po.po_number || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{po.suppliers?.name || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{po.projects?.project_name || po.projects?.project_code || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(po.order_date)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatCurrency(po.total_amount, "IDR")}</td>
-                    <td className="px-4 py-3 text-sm"><StatusBadge status={po.status} /></td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="truncate px-3 py-3 text-sm font-semibold text-slate-900" title={po.po_number || "-"}>{po.po_number || "-"}</td>
+                    <td className="truncate px-3 py-3 text-sm text-slate-700" title={po.suppliers?.name || "-"}>{po.suppliers?.name || "-"}</td>
+                    <td className="truncate px-3 py-3 text-sm text-slate-600" title={po.projects?.project_name || po.projects?.project_code || "-"}>{po.projects?.project_name || po.projects?.project_code || "-"}</td>
+                    <td className="truncate px-3 py-3 text-sm text-slate-600">{formatDate(po.order_date)}</td>
+                    <td className="truncate px-3 py-3 text-sm font-medium text-slate-800" title={formatCurrency(po.total_amount, "IDR")}>{formatCurrency(po.total_amount, "IDR")}</td>
+                    <td className="px-3 py-3 text-sm"><StatusBadge status={po.status} /></td>
+                    <td className="px-3 py-3 text-sm">
                       <button
                         type="button"
-                        className="inline-flex h-8 items-center rounded-md bg-slate-900 px-3 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex h-8 w-full items-center justify-center rounded-md bg-slate-900 px-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                         onClick={() => openCreateFormFromPo(po)}
                         disabled={!canManage}
                       >
@@ -869,7 +870,7 @@ export default function FinancePayablesPage() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-4 py-5 text-sm text-slate-500" colSpan={7}>
+                  <td className="px-3 py-5 text-sm text-slate-500" colSpan={7}>
                     No approved or delivered PO waiting for AP.
                   </td>
                 </tr>
