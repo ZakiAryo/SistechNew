@@ -818,11 +818,22 @@ export default function FinancePayablesPage() {
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-[900px] divide-y divide-slate-200">
+          <table className="min-w-[1040px] divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
                 {["PO Number", "Supplier", "Project", "PO Date", "Amount", "Status", "Action"].map((header) => (
-                  <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th
+                    key={header}
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
+                    style={{
+                      width:
+                        header === "Project"
+                          ? "22%"
+                          : header === "Action"
+                            ? "12%"
+                            : "13%"
+                    }}
+                  >
                     {header}
                   </th>
                 ))}
