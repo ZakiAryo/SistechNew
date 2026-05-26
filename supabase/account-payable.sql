@@ -78,6 +78,63 @@ create index if not exists account_payables_status_idx on public.account_payable
 create index if not exists account_payables_due_date_idx on public.account_payables using btree (due_date);
 create index if not exists account_payable_items_account_payable_id_idx on public.account_payable_items using btree (account_payable_id);
 create index if not exists account_payable_items_purchase_order_id_idx on public.account_payable_items using btree (purchase_order_id);
+create index if not exists account_payable_items_invoice_number_idx on public.account_payable_items using btree (invoice_number);
+
+create sequence if not exists public.invoice_number_seq;
+
+create or replace function public.next_invoice_number()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  generated_value bigint;
+  max_existing_value bigint;
+begin
+  select max((regexp_match(invoice_number, '([0-9]+)$'))[1]::bigint)
+  into max_existing_value
+  from (
+    select invoice_number from public.invoices
+    union all
+    select invoice_number from public.account_receivables
+    union all
+    select invoice_number from public.account_payables
+    union all
+    select invoice_number from public.account_payable_items
+  ) invoice_numbers
+  where invoice_number ~ '[0-9]+$';
+
+  generated_value := nextval('public.invoice_number_seq');
+
+  if generated_value <= coalesce(max_existing_value, 0) then
+    perform setval('public.invoice_number_seq', max_existing_value, true);
+    generated_value := nextval('public.invoice_number_seq');
+  end if;
+
+  return 'INV-' || lpad(generated_value::text, 3, '0');
+end;
+$$;
+
+create or replace function public.assign_invoice_number()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.invoice_number is null or btrim(new.invoice_number) = '' then
+    new.invoice_number := public.next_invoice_number();
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists assign_account_payable_item_invoice_number on public.account_payable_items;
+create trigger assign_account_payable_item_invoice_number
+before insert on public.account_payable_items
+for each row execute function public.assign_invoice_number();
 
 create or replace function public.next_ap_number()
 returns text
@@ -177,10 +234,6 @@ begin
     raise exception 'Account payable item amount cannot be negative.';
   end if;
 
-  if new.invoice_number is null or trim(new.invoice_number) = '' then
-    raise exception 'Invoice number is required.';
-  end if;
-
   if new.invoice_date is null then
     raise exception 'Invoice date is required.';
   end if;
@@ -190,7 +243,7 @@ begin
   from public.account_payables
   where id = new.account_payable_id;
 
-  if parent_supplier_id is not null and exists (
+  if new.invoice_number is not null and trim(new.invoice_number) <> '' and parent_supplier_id is not null and exists (
     select 1
     from public.account_payable_items existing_items
     join public.account_payables existing_ap

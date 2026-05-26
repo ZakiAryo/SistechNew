@@ -55,6 +55,8 @@ begin
     select invoice_number from public.account_receivables
     union all
     select invoice_number from public.account_payables
+    union all
+    select invoice_number from public.account_payable_items
   ) invoice_numbers
   where invoice_number ~ '[0-9]+$';
 
@@ -172,6 +174,11 @@ for each row execute function public.assign_invoice_number();
 drop trigger if exists assign_account_payable_invoice_number on public.account_payables;
 create trigger assign_account_payable_invoice_number
 before insert on public.account_payables
+for each row execute function public.assign_invoice_number();
+
+drop trigger if exists assign_account_payable_item_invoice_number on public.account_payable_items;
+create trigger assign_account_payable_item_invoice_number
+before insert on public.account_payable_items
 for each row execute function public.assign_invoice_number();
 
 grant usage, select on all sequences in schema public to authenticated;

@@ -536,13 +536,13 @@ export default function FinancePayablesPage() {
     selectedItems.forEach((item, index) => {
       const invoiceNumber = String(item.invoice_number || "").trim().toLowerCase();
 
-      if (!invoiceNumber) {
-        errors[`invoice_number_${item.tempId}`] = `Invoice Number is required for item ${index + 1}.`;
-      } else if (invoiceSet.has(invoiceNumber)) {
+      if (invoiceNumber && invoiceSet.has(invoiceNumber)) {
         errors[`invoice_number_${item.tempId}`] = "Invoice Number cannot be duplicated for the same supplier.";
       }
 
-      invoiceSet.add(invoiceNumber);
+      if (invoiceNumber) {
+        invoiceSet.add(invoiceNumber);
+      }
 
       if (!item.invoice_date) {
         errors[`invoice_date_${item.tempId}`] = `Invoice Date is required for item ${index + 1}.`;
@@ -675,7 +675,7 @@ export default function FinancePayablesPage() {
       delivery_order_id: item.delivery_order_id || null,
       project_id: item.project_id || null,
       cost_code_id: item.cost_code_id || null,
-      invoice_number: item.invoice_number,
+      invoice_number: item.invoice_number || null,
       invoice_date: item.invoice_date || null,
       delivery_note_number: item.delivery_note_number || null,
       delivery_note_date: item.delivery_note_date || null,
@@ -1063,9 +1063,10 @@ export default function FinancePayablesPage() {
                         <td className="px-3 py-2 text-sm text-slate-600">{item.cost_code_label || "-"}</td>
                         <td className="px-3 py-2">
                           <input
-                            value={item.invoice_number}
-                            onChange={(event) => updateItem(item.tempId, "invoice_number", event.target.value)}
-                            className="h-9 w-40 rounded-md border border-slate-300 px-2 text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                            value={item.invoice_number || "Auto generated"}
+                            readOnly
+                            className="h-9 w-40 rounded-md border border-slate-200 bg-slate-50 px-2 text-sm text-slate-500 outline-none"
+                            title="Invoice number is generated automatically on save."
                           />
                           {formErrors[`invoice_number_${item.tempId}`] ? (
                             <span className="mt-1 block text-xs text-rose-600">{formErrors[`invoice_number_${item.tempId}`]}</span>

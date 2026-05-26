@@ -408,6 +408,7 @@ create index if not exists account_payables_status_idx on public.account_payable
 create index if not exists account_payables_due_date_idx on public.account_payables using btree (due_date);
 create index if not exists account_payable_items_account_payable_id_idx on public.account_payable_items using btree (account_payable_id);
 create index if not exists account_payable_items_purchase_order_id_idx on public.account_payable_items using btree (purchase_order_id);
+create index if not exists account_payable_items_invoice_number_idx on public.account_payable_items using btree (invoice_number);
 create index if not exists account_receivables_project_id_idx on public.account_receivables using btree (project_id);
 create index if not exists cash_bank_transactions_date_idx on public.cash_bank_transactions using btree (transaction_date);
 create index if not exists accounting_entries_source_idx on public.accounting_entries using btree (source_module, source_id);
@@ -514,6 +515,8 @@ begin
     select invoice_number from public.account_receivables
     union all
     select invoice_number from public.account_payables
+    union all
+    select invoice_number from public.account_payable_items
   ) invoice_numbers
   where invoice_number ~ '[0-9]+$';
 
@@ -631,6 +634,11 @@ for each row execute function public.assign_invoice_number();
 drop trigger if exists assign_account_payable_invoice_number on public.account_payables;
 create trigger assign_account_payable_invoice_number
 before insert on public.account_payables
+for each row execute function public.assign_invoice_number();
+
+drop trigger if exists assign_account_payable_item_invoice_number on public.account_payable_items;
+create trigger assign_account_payable_item_invoice_number
+before insert on public.account_payable_items
 for each row execute function public.assign_invoice_number();
 
 create or replace function public.set_updated_at()
@@ -762,10 +770,6 @@ begin
     raise exception 'Account payable item amount cannot be negative.';
   end if;
 
-  if new.invoice_number is null or trim(new.invoice_number) = '' then
-    raise exception 'Invoice number is required.';
-  end if;
-
   if new.invoice_date is null then
     raise exception 'Invoice date is required.';
   end if;
@@ -775,7 +779,7 @@ begin
   from public.account_payables
   where id = new.account_payable_id;
 
-  if parent_supplier_id is not null and exists (
+  if new.invoice_number is not null and trim(new.invoice_number) <> '' and parent_supplier_id is not null and exists (
     select 1
     from public.account_payable_items existing_items
     join public.account_payables existing_ap
