@@ -1,6 +1,6 @@
 # SISTECH Next
 
-SISTECH Next adalah rebuild modern dari aplikasi internal SISTECH lama. Versi ini memakai Next.js App Router, Supabase Auth, Supabase PostgreSQL, Row Level Security, dan Tailwind CSS. Project ini tidak memakai PHP, MySQL, XAMPP, PDO, atau hasil konversi mentah dari file PHP lama.
+SISTECH Next adalah rebuild modern dari SISTECH versi lama. Versi ini memakai Next.js App Router, Supabase Auth, Supabase PostgreSQL, Row Level Security, dan Tailwind CSS. Project ini tidak memakai PHP, MySQL, XAMPP, PDO, atau hasil konversi mentah dari file PHP lama.
 
 ## Tech Stack
 
@@ -89,45 +89,6 @@ Setelah role admin aktif, user tersebut bisa insert, update, dan delete master d
 - `supabase/demo-users.sql`: update role untuk akun demo setelah dibuat di Supabase Auth.
 - `docs/SISTECH_WORKFLOW.md`: desain relasi, hak akses role, menu, workflow, dan status approval.
 
-## Modul Selesai di Tahap 1
-
-- Authentication dengan Supabase Auth.
-- Login page.
-- Logout button.
-- Protected route dengan middleware.
-- Redirect unauthenticated user ke `/login`.
-- Redirect authenticated user dari `/login` ke `/dashboard`.
-- `profiles` table dan role awal.
-- Dashboard statistics.
-- Sidebar, topbar, responsive app layout.
-- CRUD master data:
-  - Customers
-  - Suppliers
-  - Project List
-  - Cost Codes
-- Search, add, edit, delete, loading state, empty state, error handling, success toast, dan validasi input dasar.
-- Placeholder route:
-  - `/marketing`
-  - `/engineering`
-  - `/purchasing`
-  - `/finance`
-  - `/reports`
-  - `/notifications`
-  - `/users`
-
-## Modul Tambahan Tahap 2
-
-- Multi-role login menggunakan Supabase Auth + `profiles.role`.
-- Sidebar dinamis berdasarkan role.
-- Dashboard berbeda untuk admin, marketing, engineering, purchasing, finance, dan user.
-- Marketing: customer, project, cost code mapping, budget, contract, cost control report.
-- Engineering: input PR dan PR outstanding.
-- Purchasing: incoming PR, convert PR to PO, PO input, delivery order, PO vs payment.
-- Finance: account payable dari approved PO, account receivable, cash bank, AP/AR aging, accounting report, tax report.
-- Notifications antar role.
-- Audit log user activity.
-- Export CSV/Excel dan print/PDF untuk report.
-
 ## RLS Policy Awal
 
 Policy awal dibuat konservatif:
@@ -198,7 +159,3 @@ npm run lint
 - User management UI penuh.
 - Role-based policy detail per modul.
 - Audit log dan attachment/document handling.
-
-## Catatan Pengembangan
-
-Tahap berikutnya sebaiknya fokus pada satu workflow dulu, misalnya Marketing to Project atau Purchase Request to Purchase Order. Dengan begitu schema transaksi, approval, notification, dan reporting bisa tumbuh stabil tanpa memadatkan semua modul sekaligus.
