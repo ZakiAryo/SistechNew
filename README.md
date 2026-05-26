@@ -1,6 +1,6 @@
-# SISTECH Next
+# SISTECH
 
-SISTECH Next adalah rebuild modern dari SISTECH versi lama. Versi ini memakai Next.js App Router, Supabase Auth, Supabase PostgreSQL, Row Level Security, dan Tailwind CSS. Project ini tidak memakai PHP, MySQL, XAMPP, PDO, atau hasil konversi mentah dari file PHP lama.
+SISTECH adalah ERP modern dari SISTECH. Versi ini memakai Next.js App Router, Supabase Auth, Supabase PostgreSQL, Row Level Security, dan Tailwind CSS. Project ini tidak memakai PHP, MySQL, XAMPP, PDO, atau hasil konversi mentah dari file PHP lama.
 
 ## Tech Stack
 
