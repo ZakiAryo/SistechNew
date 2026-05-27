@@ -130,7 +130,7 @@ export default function Sidebar({
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:px-2" : ""}`}>
+        <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:pl-3 lg:pr-6" : ""}`}>
           <Link href="/dashboard" className={`flex items-center gap-3 ${collapsed ? "lg:justify-center" : ""}`} onClick={onClose}>
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-sm font-semibold text-white">
               ST
@@ -145,7 +145,7 @@ export default function Sidebar({
           <button
             type="button"
             className={`hidden items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 lg:inline-flex ${
-              collapsed ? "absolute -right-3 top-1/2 z-10 h-7 w-7 -translate-y-1/2 shadow-sm" : "h-9 w-9"
+              collapsed ? "absolute -right-5 top-1/2 z-10 h-8 w-8 -translate-y-1/2 shadow-sm" : "h-9 w-9"
             }`}
             onClick={onToggleCollapsed}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
