@@ -2,7 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen, ShieldCheck, X } from "lucide-react";
+import {
+  Banknote,
+  BarChart3,
+  Bell,
+  Boxes,
+  BriefcaseBusiness,
+  Building2,
+  ClipboardList,
+  CreditCard,
+  DatabaseBackup,
+  FileClock,
+  FileText,
+  FolderKanban,
+  Handshake,
+  LayoutDashboard,
+  ListChecks,
+  Package,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Receipt,
+  ScrollText,
+  ShieldCheck,
+  Tags,
+  Truck,
+  UserRound,
+  Users,
+  WalletCards,
+  X
+} from "lucide-react";
 import { getMenuSectionsForProfile, roleLabels } from "@/lib/menuConfig";
 import { normalizeRole } from "@/lib/profile";
 
@@ -25,14 +53,52 @@ function findActiveIndex(items, pathname) {
   return prefixMatches[0]?.index ?? -1;
 }
 
-function getCompactLabel(label) {
-  return label
-    .split(/[\s/&-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+const iconByHref = {
+  "/dashboard": LayoutDashboard,
+  "/master-data/customers": Building2,
+  "/master-data/suppliers": BriefcaseBusiness,
+  "/master-data/items": Boxes,
+  "/master-data/projects": FolderKanban,
+  "/master-data/cost-codes": Tags,
+  "/marketing": BarChart3,
+  "/marketing/projects": FolderKanban,
+  "/marketing/budgets": WalletCards,
+  "/marketing/cost-codes": Tags,
+  "/marketing/project-cost-codes": ListChecks,
+  "/marketing/contracts": Handshake,
+  "/marketing/customers": Building2,
+  "/marketing/cost-control": BarChart3,
+  "/engineering": ClipboardList,
+  "/engineering/purchase-requests": ClipboardList,
+  "/engineering/items": Package,
+  "/engineering/purchase-requests/outstanding": FileClock,
+  "/purchasing": Receipt,
+  "/purchasing/suppliers": BriefcaseBusiness,
+  "/purchasing/items": Boxes,
+  "/purchasing/purchase-requests": ClipboardList,
+  "/purchasing/purchase-orders": Receipt,
+  "/purchasing/purchase-orders/outstanding": FileClock,
+  "/purchasing/delivery-orders": Truck,
+  "/purchasing/po-vs-payment": CreditCard,
+  "/finance": Banknote,
+  "/finance/account-payable": CreditCard,
+  "/finance/account-receivable": FileText,
+  "/finance/cash-bank": Banknote,
+  "/finance/ap-aging": FileClock,
+  "/finance/ar-aging": FileClock,
+  "/finance/reconcile-bank": WalletCards,
+  "/finance/accounting-report": ScrollText,
+  "/finance/tax-report": ScrollText,
+  "/reports": BarChart3,
+  "/notifications": Bell,
+  "/users": Users,
+  "/users/access-control": ShieldCheck,
+  "/users/backup": DatabaseBackup,
+  "/users/audit-logs": ScrollText
+};
+
+function getItemIcon(item) {
+  return iconByHref[item.href] || UserRound;
 }
 
 export default function Sidebar({
@@ -64,8 +130,8 @@ export default function Sidebar({
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className={`flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:px-3" : ""}`}>
-          <Link href="/dashboard" className="flex items-center gap-3" onClick={onClose}>
+        <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:px-2" : ""}`}>
+          <Link href="/dashboard" className={`flex items-center gap-3 ${collapsed ? "lg:justify-center" : ""}`} onClick={onClose}>
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-sm font-semibold text-white">
               ST
             </span>
@@ -78,7 +144,9 @@ export default function Sidebar({
           </Link>
           <button
             type="button"
-            className="hidden h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 lg:inline-flex"
+            className={`hidden items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 lg:inline-flex ${
+              collapsed ? "absolute right-1 h-7 w-7" : "h-9 w-9"
+            }`}
             onClick={onToggleCollapsed}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -96,7 +164,7 @@ export default function Sidebar({
           </button>
         </div>
 
-        <nav className={`flex-1 overflow-y-auto py-5 ${collapsed ? "space-y-4 px-2" : "space-y-6 px-4"}`}>
+        <nav className={`flex-1 overflow-y-auto py-5 ${collapsed ? "space-y-2 px-3" : "space-y-6 px-4"}`}>
           {profileLoading ? (
             <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
               Loading role menu
@@ -110,13 +178,14 @@ export default function Sidebar({
               const activeIndex = findActiveIndex(section.items, pathname);
 
               return (
-                <div key={section.title}>
+                <div key={section.title} className={collapsed ? "lg:space-y-1" : ""}>
                   <p className={`px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 ${collapsed ? "lg:hidden" : ""}`}>
                     {section.title}
                   </p>
-                  <div className="mt-2 space-y-1">
+                  <div className={collapsed ? "space-y-1 lg:mt-0" : "mt-2 space-y-1"}>
                     {section.items.map((item, index) => {
                       const active = index === activeIndex && isActivePath(pathname, item.href);
+                      const ItemIcon = getItemIcon(item);
 
                       return (
                         <Link
@@ -126,7 +195,7 @@ export default function Sidebar({
                           aria-current={active ? "page" : undefined}
                           title={collapsed ? item.label : undefined}
                           className={`group relative flex min-h-10 items-center overflow-hidden rounded-md py-2 text-sm font-medium transition-all duration-200 ${
-                            collapsed ? "justify-center px-2" : "pl-8 pr-3"
+                            collapsed ? "justify-center px-2 lg:h-10 lg:w-10 lg:mx-auto" : "pl-8 pr-3"
                           } ${
                             active
                               ? "bg-slate-50 text-slate-950"
@@ -136,10 +205,8 @@ export default function Sidebar({
                           {active ? (
                             <span className={`absolute inset-y-2 w-1 rounded-full bg-cyan-500 ${collapsed ? "left-1" : "left-3"}`} />
                           ) : null}
+                          <ItemIcon className={`h-4 w-4 flex-none ${collapsed ? "hidden lg:block" : "hidden"}`} />
                           <span className={`leading-5 ${collapsed ? "lg:hidden" : ""}`}>{item.label}</span>
-                          <span className={`hidden text-xs font-semibold leading-5 ${collapsed ? "lg:inline" : ""}`}>
-                            {getCompactLabel(item.label)}
-                          </span>
                         </Link>
                       );
                     })}

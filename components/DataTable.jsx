@@ -75,8 +75,9 @@ export default function DataTable({
   documentUrlKey
 }) {
   const showActions = Boolean(canManage || detailBasePath || documentUrlKey);
-  const actionColumnWidth = showActions ? 128 : 0;
-  const tableMinWidth = Math.max(720, columns.length * 180 + actionColumnWidth);
+  const actionButtonCount = (detailBasePath ? 1 : 0) + (documentUrlKey ? 1 : 0) + (canManage ? 2 : 0);
+  const actionColumnWidth = showActions ? Math.max(96, actionButtonCount * 36 + 16) : 0;
+  const tableMinWidth = Math.max(640, columns.length * 124 + actionColumnWidth);
   const skeletonColumns = columns.length + (showActions ? 1 : 0);
 
   if (loading) {
@@ -131,7 +132,7 @@ export default function DataTable({
                 <th
                   key={column.key}
                   scope="col"
-                  className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
+                  className="whitespace-nowrap px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
                   style={{ width: column.width || `${100 / Math.max(columns.length, 1)}%` }}
                 >
                   {column.label}
@@ -140,7 +141,8 @@ export default function DataTable({
               {showActions ? (
                 <th
                   scope="col"
-                  className="w-32 whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500"
+                  className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500"
+                  style={{ width: actionColumnWidth }}
                 >
                   Actions
                 </th>
@@ -153,14 +155,14 @@ export default function DataTable({
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className={`px-4 py-3 text-sm text-slate-700 ${column.className || ""}`}
+                    className={`px-3 py-3 text-sm text-slate-700 ${column.className || ""}`}
                   >
                     <div className="min-w-0 truncate">{formatValue(getNestedValue(row, column.key), column)}</div>
                   </td>
                 ))}
                 {showActions ? (
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
-                    <div className="inline-flex min-w-24 items-center justify-end gap-1">
+                  <td className="whitespace-nowrap px-3 py-3 text-right">
+                    <div className="inline-flex items-center justify-end gap-1" style={{ minWidth: actionColumnWidth - 24 }}>
                       {detailBasePath ? (
                         <Link
                           href={`${detailBasePath}/${row.id}`}
