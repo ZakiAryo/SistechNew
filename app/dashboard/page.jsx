@@ -179,7 +179,7 @@ export default async function DashboardPage() {
             label={stat.label}
             value={stat.value}
             icon={stat.icon}
-            helper={stat.warning ? "Count fallback is 0. Check Supabase schema and policies." : "Live Supabase count"}
+            helper={stat.warning ? "Count fallback is 0. Check database schema and policies." : "Current system total"}
           />
         ))}
       </div>

@@ -230,10 +230,10 @@ export default function Sidebar({
           <div className="rounded-lg bg-slate-50 p-3">
             <div className={`flex items-center gap-2 text-sm font-semibold text-slate-800 ${collapsed ? "justify-center" : ""}`}>
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span className={collapsed ? "lg:hidden" : ""}>Supabase Auth</span>
+              <span className={collapsed ? "lg:hidden" : ""}>System Access</span>
             </div>
             <p className={`mt-1 text-xs leading-5 text-slate-500 ${collapsed ? "lg:hidden" : ""}`}>
-              Current menu:{" "}
+              Active role:{" "}
               {profileLoading
                 ? "Loading role"
                 : profileError
