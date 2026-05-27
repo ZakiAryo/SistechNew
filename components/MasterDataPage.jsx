@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, Plus, RefreshCw, Search, ShieldAlert } from "lucide-react";
 import AppLayout from "./AppLayout";
 import ConfirmDialog from "./ConfirmDialog";
@@ -9,6 +10,7 @@ import FormInput from "./FormInput";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
 import { writeAuditLog } from "@/lib/audit";
+import { canProfileAccessPath } from "@/lib/menuConfig";
 import { fetchProfileByUserId } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
@@ -59,7 +61,8 @@ export default function MasterDataPage({
   allowedRoles = ["admin"],
   userIdField,
   detailBasePath,
-  documentUrlKey
+  documentUrlKey,
+  useMenuAccessForManage = true
 }) {
   const [rows, setRows] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -76,6 +79,7 @@ export default function MasterDataPage({
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [toast, setToast] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const pathname = usePathname();
 
   const supabase = useMemo(() => {
     try {
@@ -85,7 +89,12 @@ export default function MasterDataPage({
     }
   }, []);
 
-  const canManage = Boolean(profile?.role && (profile.role === "admin" || allowedRoles.includes(profile.role)));
+  const canManage = Boolean(
+    profile?.role &&
+      (profile.role === "admin" ||
+        allowedRoles.includes(profile.role) ||
+        (useMenuAccessForManage && canProfileAccessPath(profile, pathname)))
+  );
 
   const hydratedFields = useMemo(() => {
     return fields.map((field) => {

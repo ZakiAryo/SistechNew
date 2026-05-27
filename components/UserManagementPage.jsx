@@ -7,6 +7,7 @@ import FormInput from "./FormInput";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
 import { writeAuditLog } from "@/lib/audit";
+import { getBaseMenuHrefsForRole, getMenuAccessCatalog, normalizeMenuAccess } from "@/lib/menuConfig";
 import { fetchProfileByUserId } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
@@ -45,7 +46,8 @@ export default function UserManagementPage({ mode = "users" }) {
     full_name: "",
     email: "",
     role: "user",
-    is_active: "true"
+    is_active: "true",
+    menu_access: []
   });
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,8 @@ export default function UserManagementPage({ mode = "users" }) {
     mode === "access"
       ? "Review and update user role access without changing Supabase Auth passwords."
       : "Manage profile information and role assignment for registered users.";
+  const menuCatalog = useMemo(() => getMenuAccessCatalog(), []);
+  const baseMenuHrefs = useMemo(() => getBaseMenuHrefsForRole(formData.role), [formData.role]);
 
   const visibleRows = rows.filter((row) => {
     const haystack = [row.full_name, row.email, row.role].filter(Boolean).join(" ").toLowerCase();
@@ -113,10 +117,20 @@ export default function UserManagementPage({ mode = "users" }) {
     setLoading(true);
     setError("");
 
-    const { data, error: queryError } = await supabase
+    let { data, error: queryError } = await supabase
       .from("profiles")
-      .select("id, full_name, email, role, is_active, created_at, updated_at")
+      .select("id, full_name, email, role, is_active, menu_access, created_at, updated_at")
       .order("updated_at", { ascending: false });
+
+    if (queryError?.message?.includes("menu_access")) {
+      const fallbackResult = await supabase
+        .from("profiles")
+        .select("id, full_name, email, role, is_active, created_at, updated_at")
+        .order("updated_at", { ascending: false });
+
+      data = fallbackResult.data?.map((row) => ({ ...row, menu_access: [] })) || [];
+      queryError = fallbackResult.error;
+    }
 
     if (queryError) {
       setRows([]);
@@ -154,7 +168,8 @@ export default function UserManagementPage({ mode = "users" }) {
       full_name: row.full_name || "",
       email: row.email || "",
       role: row.role || "user",
-      is_active: String(row.is_active !== false)
+      is_active: String(row.is_active !== false),
+      menu_access: normalizeMenuAccess(row.menu_access)
     });
     setIsFormOpen(true);
   }
@@ -163,6 +178,21 @@ export default function UserManagementPage({ mode = "users" }) {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
     setFormErrors((current) => ({ ...current, [name]: undefined }));
+  }
+
+  function handleMenuAccessChange(href) {
+    setFormData((current) => {
+      const currentAccess = normalizeMenuAccess(current.menu_access);
+      const exists = currentAccess.includes(href);
+      const nextAccess = exists
+        ? currentAccess.filter((item) => item !== href)
+        : [...currentAccess, href];
+
+      return {
+        ...current,
+        menu_access: nextAccess
+      };
+    });
   }
 
   function validateForm() {
@@ -194,7 +224,8 @@ export default function UserManagementPage({ mode = "users" }) {
       full_name: formData.full_name.trim() || null,
       email: formData.email.trim(),
       role: formData.role,
-      is_active: formData.is_active === "true"
+      is_active: formData.is_active === "true",
+      menu_access: normalizeMenuAccess(formData.menu_access)
     };
 
     const { error: updateError } = await supabase
@@ -286,7 +317,7 @@ export default function UserManagementPage({ mode = "users" }) {
           <table className="min-w-[920px] divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                {["Name", "Email", "Role", "Status", "Updated", "Action"].map((header) => (
+                {["Name", "Email", "Role", "Status", mode === "access" ? "Extra Access" : "Updated", "Action"].map((header) => (
                   <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {header}
                   </th>
@@ -311,7 +342,13 @@ export default function UserManagementPage({ mode = "users" }) {
                         {row.is_active === false ? "Inactive" : "Active"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{row.updated_at ? new Date(row.updated_at).toLocaleDateString("id-ID") : "-"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {mode === "access"
+                        ? `${normalizeMenuAccess(row.menu_access).length} menu`
+                        : row.updated_at
+                          ? new Date(row.updated_at).toLocaleDateString("id-ID")
+                          : "-"}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <button
                         type="button"
@@ -365,6 +402,58 @@ export default function UserManagementPage({ mode = "users" }) {
           <FormInput label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} required error={formErrors.email} />
           <FormInput label="Role" name="role" type="select" value={formData.role} onChange={handleInputChange} options={roleOptions} required error={formErrors.role} />
           <FormInput label="Status" name="is_active" type="select" value={formData.is_active} onChange={handleInputChange} options={activeOptions} required />
+          {mode === "access" ? (
+            <div className="sm:col-span-2">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-950">Menu Access</h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Role default access is checked and locked. Check additional menus to grant extra access.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
+                    {normalizeMenuAccess(formData.menu_access).length} extra
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  {menuCatalog.map((section) => (
+                    <div key={section.title} className="rounded-md border border-slate-200 bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{section.title}</p>
+                      <div className="mt-3 space-y-2">
+                        {section.items.map((item) => {
+                          const roleDefault = baseMenuHrefs.includes(item.href);
+                          const checked = roleDefault || normalizeMenuAccess(formData.menu_access).includes(item.href);
+
+                          return (
+                            <label key={item.href} className="flex items-start gap-2 text-sm text-slate-700">
+                              <input
+                                type="checkbox"
+                                className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 disabled:opacity-60"
+                                checked={checked}
+                                disabled={roleDefault}
+                                onChange={() => handleMenuAccessChange(item.href)}
+                              />
+                              <span>
+                                <span className="font-medium text-slate-800">{item.label}</span>
+                                {roleDefault ? (
+                                  <span className="ml-2 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
+                                    Role
+                                  </span>
+                                ) : null}
+                                <span className="block text-xs text-slate-400">{item.href}</span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </form>
       </Modal>
     </AppLayout>

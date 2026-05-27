@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getMenuSectionsForRole } from "@/lib/menuConfig";
-import { normalizeRole } from "@/lib/profile";
+import { getMenuSectionsForProfile } from "@/lib/menuConfig";
 
 function isActivePath(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -31,11 +30,10 @@ function findActiveIndex(items, pathname) {
   return prefixMatches[0]?.index ?? 0;
 }
 
-export default function RouteTabs({ role }) {
+export default function RouteTabs({ profile }) {
   const pathname = usePathname();
   const [pendingIndex, setPendingIndex] = useState(null);
-  const roleKey = normalizeRole(role);
-  const sections = getMenuSectionsForRole(roleKey);
+  const sections = getMenuSectionsForProfile(profile);
   const activeSection = findActiveSection(sections, pathname);
   const items = activeSection?.items || [];
   const activeIndex = findActiveIndex(items, pathname);

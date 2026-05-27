@@ -6,12 +6,14 @@ create table if not exists public.profiles (
   email text,
   role text not null default 'user' check (role in ('admin', 'marketing', 'purchasing', 'finance', 'engineering', 'user')),
   is_active boolean default true,
+  menu_access jsonb default '[]'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
 alter table public.profiles
-  add column if not exists is_active boolean default true;
+  add column if not exists is_active boolean default true,
+  add column if not exists menu_access jsonb default '[]'::jsonb;
 
 create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),

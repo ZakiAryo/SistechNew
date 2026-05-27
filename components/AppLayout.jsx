@@ -11,6 +11,7 @@ import { fetchProfileByUserId } from "@/lib/profile";
 export default function AppLayout({ children }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isRouteSettling, setIsRouteSettling] = useState(false);
   const [profileState, setProfileState] = useState({
     profile: null,
@@ -118,6 +119,19 @@ export default function AppLayout({ children }) {
     return () => window.clearTimeout(timer);
   }, [pathname]);
 
+  useEffect(() => {
+    const savedValue = window.localStorage.getItem("sistech-sidebar-collapsed");
+    setIsSidebarCollapsed(savedValue === "true");
+  }, []);
+
+  function toggleSidebarCollapsed() {
+    setIsSidebarCollapsed((current) => {
+      const nextValue = !current;
+      window.localStorage.setItem("sistech-sidebar-collapsed", String(nextValue));
+      return nextValue;
+    });
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div
@@ -131,8 +145,10 @@ export default function AppLayout({ children }) {
         profile={profileState.profile}
         profileError={profileState.error}
         profileLoading={profileState.loading}
+        collapsed={isSidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
       />
-      <div className="min-h-screen lg:pl-72">
+      <div className={`min-h-screen transition-[padding] duration-200 ${isSidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}`}>
         <Topbar
           onOpenSidebar={() => setIsSidebarOpen(true)}
           profile={profileState.profile}
@@ -140,13 +156,13 @@ export default function AppLayout({ children }) {
           profileLoading={profileState.loading}
         />
         <main className="px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-none">
             {profileState.error ? (
               <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                 {profileState.error}
               </div>
             ) : null}
-            <RouteTabs role={profileState.profile?.role} />
+            <RouteTabs profile={profileState.profile} />
             <div key={pathname} className="page-transition">
               {children}
             </div>

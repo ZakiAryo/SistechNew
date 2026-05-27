@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { canRoleAccessPath } from "./lib/menuConfig";
+import { canProfileAccessPath, canRoleAccessPath } from "./lib/menuConfig";
 
 const protectedRoutes = [
   "/dashboard",
@@ -60,13 +60,29 @@ export async function middleware(request) {
   }
 
   if (user && isProtectedRoute && pathname !== "/dashboard") {
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_active, menu_access")
       .eq("id", user.id)
       .single();
 
-    if (!profileError && profile?.role && !canRoleAccessPath(profile.role, pathname)) {
+    if (profileError?.message?.includes("menu_access") || profileError?.message?.includes("is_active")) {
+      const fallbackResult = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      profile = fallbackResult.data ? { ...fallbackResult.data, is_active: true, menu_access: [] } : null;
+      profileError = fallbackResult.error;
+    }
+
+    if (
+      !profileError &&
+      profile?.role &&
+      !canProfileAccessPath(profile, pathname) &&
+      !canRoleAccessPath(profile.role, pathname)
+    ) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }

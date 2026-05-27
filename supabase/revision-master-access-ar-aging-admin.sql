@@ -5,7 +5,8 @@
 create extension if not exists pgcrypto;
 
 alter table public.profiles
-  add column if not exists is_active boolean default true;
+  add column if not exists is_active boolean default true,
+  add column if not exists menu_access jsonb default '[]'::jsonb;
 
 create table if not exists public.items (
   id uuid primary key default gen_random_uuid(),
