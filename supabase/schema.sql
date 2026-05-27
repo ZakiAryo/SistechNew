@@ -497,6 +497,16 @@ create index if not exists cash_bank_transactions_date_idx on public.cash_bank_t
 create index if not exists accounting_entries_source_idx on public.accounting_entries using btree (source_module, source_id);
 create index if not exists audit_logs_user_id_idx on public.audit_logs using btree (user_id);
 
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to service_role;
+
+alter default privileges in schema public
+grant select, insert, update, delete on tables to service_role;
+
+alter default privileges in schema public
+grant usage, select on sequences to service_role;
+
 create sequence if not exists public.pr_number_seq;
 create sequence if not exists public.po_number_seq;
 create sequence if not exists public.do_number_seq;

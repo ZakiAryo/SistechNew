@@ -243,6 +243,16 @@ alter table public.items enable row level security;
 
 grant select, insert, update, delete on public.items to authenticated;
 
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to service_role;
+
+alter default privileges in schema public
+grant select, insert, update, delete on tables to service_role;
+
+alter default privileges in schema public
+grant usage, select on sequences to service_role;
+
 drop policy if exists "items_operational_read" on public.items;
 create policy "items_operational_read"
 on public.items
