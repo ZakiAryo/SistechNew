@@ -95,8 +95,8 @@ export default function BackupDatabasePage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
-          Backup requires `SUPABASE_SERVICE_ROLE_KEY` in Vercel/server environment. The key is never exposed to the browser.
+        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-cyan-900">
+          Backup runs through a server-side endpoint using `SUPABASE_SERVICE_ROLE_KEY`. The key stays in Vercel/server environment and is never exposed to the browser.
         </div>
       </div>
     </AppLayout>
