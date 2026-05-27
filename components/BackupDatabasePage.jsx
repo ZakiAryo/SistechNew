@@ -8,13 +8,37 @@ import PageHeader from "./PageHeader";
 export default function BackupDatabasePage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
+
+  function toIsoDateTime(value) {
+    if (!value) {
+      return "";
+    }
+
+    return new Date(value).toISOString();
+  }
 
   async function downloadBackup(format = "json") {
     setLoading(true);
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/backup?format=${format}`, {
+      if (startAt && endAt && new Date(startAt) > new Date(endAt)) {
+        throw new Error("Start date/time must be before end date/time.");
+      }
+
+      const params = new URLSearchParams({ format });
+
+      if (startAt) {
+        params.set("start_at", toIsoDateTime(startAt));
+      }
+
+      if (endAt) {
+        params.set("end_at", toIsoDateTime(endAt));
+      }
+
+      const response = await fetch(`/api/admin/backup?${params.toString()}`, {
         method: "GET",
         cache: "no-store"
       });
@@ -72,6 +96,31 @@ export default function BackupDatabasePage() {
               </p>
             </div>
           </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm font-medium text-slate-700">
+              <span>Start Date & Time</span>
+              <input
+                type="datetime-local"
+                value={startAt}
+                onChange={(event) => setStartAt(event.target.value)}
+                className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              />
+            </label>
+            <label className="block text-sm font-medium text-slate-700">
+              <span>End Date & Time</span>
+              <input
+                type="datetime-local"
+                value={endAt}
+                onChange={(event) => setEndAt(event.target.value)}
+                className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+              />
+            </label>
+          </div>
+
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            Leave both fields empty to export all records. Date range filters records by `created_at`.
+          </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
             <button

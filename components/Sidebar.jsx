@@ -145,7 +145,7 @@ export default function Sidebar({
           <button
             type="button"
             className={`hidden items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 lg:inline-flex ${
-              collapsed ? "absolute right-1 h-7 w-7" : "h-9 w-9"
+              collapsed ? "absolute -right-3 top-1/2 z-10 h-7 w-7 -translate-y-1/2 shadow-sm" : "h-9 w-9"
             }`}
             onClick={onToggleCollapsed}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -194,8 +194,8 @@ export default function Sidebar({
                           onClick={onClose}
                           aria-current={active ? "page" : undefined}
                           title={collapsed ? item.label : undefined}
-                          className={`group relative flex min-h-10 items-center overflow-hidden rounded-md py-2 text-sm font-medium transition-all duration-200 ${
-                            collapsed ? "justify-center px-2 lg:h-10 lg:w-10 lg:mx-auto" : "pl-8 pr-3"
+                          className={`group relative flex min-h-10 items-center rounded-md py-2 text-sm font-medium transition-all duration-200 ${
+                            collapsed ? "justify-center px-2 lg:h-10 lg:w-10 lg:mx-auto" : "gap-3 pl-8 pr-3"
                           } ${
                             active
                               ? "bg-slate-50 text-slate-950"
@@ -205,8 +205,13 @@ export default function Sidebar({
                           {active ? (
                             <span className={`absolute inset-y-2 w-1 rounded-full bg-cyan-500 ${collapsed ? "left-1" : "left-3"}`} />
                           ) : null}
-                          <ItemIcon className={`h-4 w-4 flex-none ${collapsed ? "hidden lg:block" : "hidden"}`} />
+                          <ItemIcon className={`h-4 w-4 flex-none ${collapsed ? "hidden lg:block" : "text-slate-500"}`} />
                           <span className={`leading-5 ${collapsed ? "lg:hidden" : ""}`}>{item.label}</span>
+                          <span className={`pointer-events-none absolute left-full top-1/2 z-[90] ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-200 bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white shadow-lg ${
+                            collapsed ? "group-hover:lg:block" : ""
+                          }`}>
+                            {item.label}
+                          </span>
                         </Link>
                       );
                     })}

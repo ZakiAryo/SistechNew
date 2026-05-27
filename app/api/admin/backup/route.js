@@ -99,11 +99,32 @@ function backupToCsv(payload) {
     .join("\n\n");
 }
 
+function parseDateParam(value, label) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${label} is not a valid date/time.`);
+  }
+
+  return parsed.toISOString();
+}
+
 export async function GET(request) {
   const format = request.nextUrl.searchParams.get("format") === "csv" ? "csv" : "json";
   const requestedAt = new Date().toISOString();
 
   try {
+    const startAt = parseDateParam(request.nextUrl.searchParams.get("start_at"), "Start date/time");
+    const endAt = parseDateParam(request.nextUrl.searchParams.get("end_at"), "End date/time");
+
+    if (startAt && endAt && new Date(startAt) > new Date(endAt)) {
+      return NextResponse.json({ error: "Start date/time must be before end date/time." }, { status: 400 });
+    }
+
     const sessionClient = await createSupabaseServerClient();
     const { data: userData, error: userError } = await sessionClient.auth.getUser();
     const user = userData?.user;
@@ -126,10 +147,20 @@ export async function GET(request) {
     const tables = {};
 
     for (const tableName of backupTables) {
-      const { data, error } = await serviceClient
+      let query = serviceClient
         .from(tableName)
         .select("*")
         .limit(50000);
+
+      if (startAt) {
+        query = query.gte("created_at", startAt);
+      }
+
+      if (endAt) {
+        query = query.lte("created_at", endAt);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         throw new Error(`Backup failed while reading ${tableName}: ${error.message}`);
@@ -146,6 +177,8 @@ export async function GET(request) {
       metadata: {
         format,
         requested_at: requestedAt,
+        start_at: startAt,
+        end_at: endAt,
         tables: backupTables
       }
     });
@@ -164,7 +197,11 @@ export async function GET(request) {
           full_name: profile.full_name,
           role: profile.role
         },
-        table_count: backupTables.length
+        table_count: backupTables.length,
+        filters: {
+          start_at: startAt,
+          end_at: endAt
+        }
       },
       tables
     };
