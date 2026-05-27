@@ -58,7 +58,7 @@ export default function BackupDatabasePage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="max-w-2xl">
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-start gap-3">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
@@ -93,10 +93,6 @@ export default function BackupDatabasePage() {
               Download CSV
             </button>
           </div>
-        </div>
-
-        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5 text-sm leading-6 text-cyan-900">
-          Backup runs through a server-side endpoint using `SUPABASE_SERVICE_ROLE_KEY`. The key stays in Vercel/server environment and is never exposed to the browser.
         </div>
       </div>
     </AppLayout>

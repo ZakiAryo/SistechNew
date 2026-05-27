@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { Buffer } from "node:buffer";
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
@@ -33,11 +34,43 @@ function createServiceClient() {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
   }
 
+  assertServiceRoleKey(serviceRoleKey);
+
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       persistSession: false
     }
   });
+}
+
+function decodeBase64Url(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+  return Buffer.from(padded, "base64").toString("utf8");
+}
+
+function assertServiceRoleKey(key) {
+  const parts = key.split(".");
+
+  if (parts.length !== 3) {
+    return;
+  }
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(parts[1]));
+
+    if (payload.role !== "service_role") {
+      throw new Error(
+        "SUPABASE_SERVICE_ROLE_KEY is configured, but it is not a service_role key. Copy the service_role secret key from Supabase Project Settings > API Keys, then redeploy Vercel."
+      );
+    }
+  } catch (error) {
+    if (error.message?.includes("not a service_role key")) {
+      throw error;
+    }
+
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY could not be validated. Please re-copy the service_role key from Supabase.");
+  }
 }
 
 function escapeCsv(value) {
@@ -92,18 +125,20 @@ export async function GET(request) {
     const serviceClient = createServiceClient();
     const tables = {};
 
-    await Promise.all(
-      backupTables.map(async (tableName) => {
-        const { data, error } = await serviceClient
-          .from(tableName)
-          .select("*")
-          .limit(50000);
+    for (const tableName of backupTables) {
+      const { data, error } = await serviceClient
+        .from(tableName)
+        .select("*")
+        .limit(50000);
 
-        tables[tableName] = error ? { error: error.message } : data || [];
-      })
-    );
+      if (error) {
+        throw new Error(`Backup failed while reading ${tableName}: ${error.message}`);
+      }
 
-    await serviceClient.from("audit_logs").insert({
+      tables[tableName] = data || [];
+    }
+
+    const { error: auditError } = await serviceClient.from("audit_logs").insert({
       user_id: user.id,
       action: "backup_database",
       module: "Administration",
@@ -114,6 +149,10 @@ export async function GET(request) {
         tables: backupTables
       }
     });
+
+    if (auditError) {
+      throw new Error(`Backup audit log failed: ${auditError.message}`);
+    }
 
     const payload = {
       meta: {
