@@ -15,12 +15,13 @@ export default function PurchasingPurchaseOrdersPage() {
       tableName="purchase_orders"
       entityName="Purchase Order"
       allowedRoles={["purchasing"]}
-      selectQuery="*, purchase_requests(pr_number), suppliers(supplier_code, name), projects(project_code, project_name)"
-      searchColumns={["po_number", "purchase_requests.pr_number", "suppliers.name", "projects.project_code", "status", "payment_status"]}
+      selectQuery="*, purchase_requests(pr_number), suppliers(supplier_code, name), projects(project_code, project_name), items(item_code, name)"
+      searchColumns={["po_number", "purchase_requests.pr_number", "suppliers.name", "projects.project_code", "items.item_code", "items.name", "status", "payment_status"]}
       columns={[
         { key: "po_number", label: "PO Number" },
         { key: "purchase_requests.pr_number", label: "PR" },
         { key: "suppliers.name", label: "Supplier" },
+        { key: "items.item_code", label: "Item" },
         { key: "projects.project_code", label: "Project" },
         { key: "total_amount", label: "Amount", format: "currency" },
         { key: "status", label: "Status", format: "badge" }
@@ -55,6 +56,16 @@ export default function PurchasingPurchaseOrdersPage() {
           optionSelect: "id, project_code, project_name",
           optionLabelKeys: ["project_code", "project_name"],
           optionOrder: "project_name"
+        },
+        {
+          name: "item_id",
+          label: "Item / Barang",
+          type: "select",
+          nullable: true,
+          optionsTable: "items",
+          optionSelect: "id, item_code, name",
+          optionLabelKeys: ["item_code", "name"],
+          optionOrder: "name"
         },
         { name: "order_date", label: "Order Date", type: "date", nullable: true },
         { name: "total_amount", label: "Total Amount", type: "number", defaultValue: "0" },

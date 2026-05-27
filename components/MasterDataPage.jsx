@@ -40,7 +40,7 @@ function formatSupabaseError(error) {
   }
 
   if (error.message?.toLowerCase().includes("row-level security")) {
-    return "Permission denied by Row Level Security. Admin role is required for this action.";
+    return "Permission denied by Row Level Security. Your role is not allowed to perform this action.";
   }
 
   return error.message || "Unexpected Supabase error.";
@@ -212,7 +212,7 @@ export default function MasterDataPage({
 
   function openCreateForm() {
     if (!canManage) {
-      setToast({ type: "error", message: "Admin role is required to add records." });
+      setToast({ type: "error", message: "Your role is not allowed to add records here." });
       return;
     }
 
@@ -224,7 +224,7 @@ export default function MasterDataPage({
 
   function openEditForm(record) {
     if (!canManage) {
-      setToast({ type: "error", message: "Admin role is required to edit records." });
+      setToast({ type: "error", message: "Your role is not allowed to edit records here." });
       return;
     }
 
@@ -294,7 +294,7 @@ export default function MasterDataPage({
     event.preventDefault();
 
     if (!canManage) {
-      setToast({ type: "error", message: "Admin role is required for this action." });
+      setToast({ type: "error", message: "Your role is not allowed to perform this action." });
       return;
     }
 
@@ -343,7 +343,7 @@ export default function MasterDataPage({
     }
 
     if (!canManage) {
-      setToast({ type: "error", message: "Admin role is required for this action." });
+      setToast({ type: "error", message: "Your role is not allowed to perform this action." });
       return;
     }
 
@@ -395,7 +395,7 @@ export default function MasterDataPage({
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={openCreateForm}
               disabled={!canManage}
-              title={canManage ? `Add ${entityName}` : "Admin role required"}
+              title={canManage ? `Add ${entityName}` : "Role permission required"}
             >
               <Plus className="h-4 w-4" />
               Add
@@ -409,7 +409,7 @@ export default function MasterDataPage({
           <ShieldAlert className="mt-0.5 h-4 w-4 flex-none" />
           <p>
             Current RLS policies allow all authenticated users to read master data. Insert,
-            update, and delete actions require the admin role.
+            update, and delete actions require an allowed operational role.
           </p>
         </div>
       ) : null}

@@ -27,6 +27,7 @@ alter table public.customers enable row level security;
 alter table public.suppliers enable row level security;
 alter table public.projects enable row level security;
 alter table public.cost_codes enable row level security;
+alter table public.items enable row level security;
 alter table public.purchase_requests enable row level security;
 alter table public.purchase_orders enable row level security;
 alter table public.invoices enable row level security;
@@ -47,6 +48,7 @@ alter table public.audit_logs enable row level security;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
+grant select, insert, update, delete on public.items to authenticated;
 
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
 create policy "profiles_select_own_or_admin"
@@ -225,6 +227,21 @@ to authenticated
 using (public.current_user_has_role(array['admin', 'marketing']))
 with check (public.current_user_has_role(array['admin', 'marketing']));
 
+drop policy if exists "items_operational_read" on public.items;
+create policy "items_operational_read"
+on public.items
+for select
+to authenticated
+using (public.current_user_has_role(array['admin', 'engineering', 'purchasing', 'finance']));
+
+drop policy if exists "items_purchasing_manage" on public.items;
+create policy "items_purchasing_manage"
+on public.items
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'purchasing']))
+with check (public.current_user_has_role(array['admin', 'purchasing']));
+
 drop policy if exists "purchase_requests_authenticated_read" on public.purchase_requests;
 create policy "purchase_requests_authenticated_read"
 on public.purchase_requests
@@ -340,7 +357,7 @@ create policy "contracts_authenticated_read"
 on public.contracts
 for select
 to authenticated
-using (public.current_user_has_role(array['admin', 'marketing']));
+using (public.current_user_has_role(array['admin', 'marketing', 'finance']));
 
 drop policy if exists "contracts_marketing_manage" on public.contracts;
 create policy "contracts_marketing_manage"

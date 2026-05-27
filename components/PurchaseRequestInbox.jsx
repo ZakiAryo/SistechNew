@@ -56,6 +56,8 @@ export default function PurchaseRequestInbox() {
       row.pr_number,
       row.projects?.project_code,
       row.projects?.project_name,
+      row.items?.item_code,
+      row.items?.name,
       row.item_summary,
       row.status
     ]
@@ -76,7 +78,7 @@ export default function PurchaseRequestInbox() {
     const [{ data: prData }, { data: supplierData }, { data: userData }] = await Promise.all([
       supabase
         .from("purchase_requests")
-        .select("*, projects(project_code, project_name)")
+        .select("*, projects(project_code, project_name), items(item_code, name)")
         .in("status", ["pending", "processed", "approved"])
         .order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id, supplier_code, name").order("name"),
@@ -124,6 +126,7 @@ export default function PurchaseRequestInbox() {
         purchase_request_id: selectedPr.id,
         supplier_id: formData.supplier_id,
         project_id: selectedPr.project_id,
+        item_id: selectedPr.item_id || null,
         status: formData.status,
         order_date: formData.order_date || null,
         total_amount: Number(formData.total_amount || 0),
@@ -209,7 +212,7 @@ export default function PurchaseRequestInbox() {
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                {["PR Number", "Project", "Summary", "Amount", "Status", "Action"].map((header) => (
+                {["PR Number", "Project", "Item", "Summary", "Amount", "Status", "Action"].map((header) => (
                   <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {header}
                   </th>
@@ -219,13 +222,14 @@ export default function PurchaseRequestInbox() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={6}>Loading incoming requests...</td>
+                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={7}>Loading incoming requests...</td>
                 </tr>
               ) : filteredRows.length ? (
                 filteredRows.map((row) => (
                   <tr key={row.id}>
                     <td className="px-4 py-3 text-sm font-medium text-slate-800">{row.pr_number || "-"}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{row.projects?.project_code || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{row.items?.item_code || row.items?.name || "-"}</td>
                     <td className="max-w-md px-4 py-3 text-sm text-slate-600">{row.item_summary || "-"}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{currency(row.estimated_amount)}</td>
                     <td className="px-4 py-3 text-sm capitalize text-slate-600">{row.status}</td>
@@ -243,7 +247,7 @@ export default function PurchaseRequestInbox() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={6}>No incoming purchase requests.</td>
+                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={7}>No incoming purchase requests.</td>
                 </tr>
               )}
             </tbody>

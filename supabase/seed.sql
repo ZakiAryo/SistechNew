@@ -35,6 +35,19 @@ set name = excluded.name,
     category = excluded.category,
     status = excluded.status;
 
+insert into public.items (item_code, name, description, category, unit, status)
+values
+  ('ITM-001', 'Control Panel', 'Electrical control panel material', 'Electrical', 'set', 'active'),
+  ('ITM-002', 'Instrumentation Cable', 'Signal cable for instrumentation work', 'Instrumentation', 'meter', 'active'),
+  ('ITM-003', 'Mechanical Valve', 'Valve material for mechanical package', 'Mechanical', 'pcs', 'active')
+on conflict (item_code) do update
+set name = excluded.name,
+    description = excluded.description,
+    category = excluded.category,
+    unit = excluded.unit,
+    status = excluded.status,
+    updated_at = now();
+
 insert into public.projects (project_code, project_name, customer_id, description, status, start_date, end_date)
 values
   (

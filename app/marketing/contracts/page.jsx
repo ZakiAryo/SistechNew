@@ -55,6 +55,8 @@ export default function ContractsPage() {
         { name: "contract_date", label: "Contract Date", type: "date", nullable: true },
         { name: "start_date", label: "Start Date", type: "date", nullable: true },
         { name: "end_date", label: "End Date", type: "date", nullable: true },
+        { name: "payment_term", label: "Payment Term", placeholder: "NET 30 / Termin 1", nullable: true },
+        { name: "due_date", label: "Due Date", type: "date", nullable: true },
         { name: "status", label: "Status", type: "select", options: statusOptions, defaultValue: "draft", required: true },
         { name: "document_url", label: "Document URL", placeholder: "https://...", nullable: true, fullWidth: true }
       ]}

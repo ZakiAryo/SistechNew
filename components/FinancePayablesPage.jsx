@@ -17,7 +17,20 @@ import AppLayout from "./AppLayout";
 import FormInput from "./FormInput";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
-import { apStatusClass, apStatuses, currencies, formatCurrency, formatDate, paymentTerms, resolveApStatus, todayIso } from "@/lib/accountPayable";
+import {
+  agingCategories,
+  agingClass,
+  apStatusClass,
+  apStatuses,
+  currencies,
+  formatCurrency,
+  formatDate,
+  getAgingCategory,
+  getAgingDays,
+  paymentTerms,
+  resolveApStatus,
+  todayIso
+} from "@/lib/accountPayable";
 import { writeAuditLog } from "@/lib/audit";
 import { fetchProfileByUserId } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -183,6 +196,7 @@ export default function FinancePayablesPage() {
   const [supplierSearch, setSupplierSearch] = useState("");
   const [poSearch, setPoSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [agingFilter, setAgingFilter] = useState("");
   const [dueBefore, setDueBefore] = useState("");
 
   const supabase = useMemo(() => {
@@ -232,12 +246,25 @@ export default function FinancePayablesPage() {
       return false;
     }
 
+    if (agingFilter && getAgingCategory(row) !== agingFilter) {
+      return false;
+    }
+
     if (dueBefore && (!row.due_date || row.due_date > dueBefore)) {
       return false;
     }
 
     return true;
   });
+
+  const agingSummary = rows.reduce(
+    (summary, row) => {
+      const category = getAgingCategory(row);
+      summary[category] = (summary[category] || 0) + Number(row.total_amount || row.amount || 0);
+      return summary;
+    },
+    { current: 0, "1-30": 0, "31-60": 0, "61-90": 0, over_90: 0 }
+  );
 
   const loadRows = useCallback(async () => {
     if (!supabase) {
@@ -762,7 +789,7 @@ export default function FinancePayablesPage() {
         </div>
       ) : null}
 
-      <div className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-5">
+      <div className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-6">
         <label className="relative block">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
@@ -796,6 +823,18 @@ export default function FinancePayablesPage() {
             </option>
           ))}
         </select>
+        <select
+          value={agingFilter}
+          onChange={(event) => setAgingFilter(event.target.value)}
+          className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+        >
+          <option value="">All aging</option>
+          {agingCategories.map((category) => (
+            <option key={category.value} value={category.value}>
+              {category.label}
+            </option>
+          ))}
+        </select>
         <input
           type="date"
           value={dueBefore}
@@ -803,6 +842,26 @@ export default function FinancePayablesPage() {
           className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           title="Filter due date before"
         />
+      </div>
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {agingCategories.map((category) => (
+          <button
+            key={category.value}
+            type="button"
+            className={`rounded-lg border bg-white p-4 text-left shadow-sm transition hover:border-cyan-200 ${
+              agingFilter === category.value ? "border-cyan-300 ring-2 ring-cyan-100" : "border-slate-200"
+            }`}
+            onClick={() => setAgingFilter((current) => (current === category.value ? "" : category.value))}
+          >
+            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ring-1 ${agingClass(category.value)}`}>
+              {category.label}
+            </span>
+            <p className="mt-3 text-lg font-semibold text-slate-950">
+              {formatCurrency(agingSummary[category.value] || 0, "IDR")}
+            </p>
+          </button>
+        ))}
       </div>
 
       <div className="mb-5 overflow-hidden rounded-lg border border-cyan-100 bg-white shadow-sm">
@@ -882,10 +941,10 @@ export default function FinancePayablesPage() {
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-[1040px] divide-y divide-slate-200">
+          <table className="min-w-[1160px] divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                {["AP Number", "Supplier", "PO Number", "AP Date", "Due Date", "Total", "Status", "Actions"].map((header) => (
+                {["AP Number", "Supplier", "PO Number", "AP Date", "Due Date", "Aging", "Total", "Status", "Actions"].map((header) => (
                   <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {header}
                   </th>
@@ -895,13 +954,14 @@ export default function FinancePayablesPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={8}>
+                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={9}>
                     Loading Account Payable...
                   </td>
                 </tr>
               ) : filteredRows.length ? (
                 filteredRows.map((row) => {
                   const resolvedStatus = resolveApStatus(row);
+                  const agingCategory = getAgingCategory(row);
                   const poNumbers = (row.account_payable_items || []).map((item) => item.po_number).filter(Boolean).join(", ");
 
                   return (
@@ -911,6 +971,11 @@ export default function FinancePayablesPage() {
                       <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-600">{poNumbers || "-"}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{formatDate(row.ap_date)}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{formatDate(row.due_date)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ring-1 ${agingClass(agingCategory)}`}>
+                          {agingCategory.replace("_", " ")} / {getAgingDays(row)}d
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatCurrency(row.total_amount || row.amount, row.currency || "IDR")}</td>
                       <td className="px-4 py-3 text-sm"><StatusBadge status={resolvedStatus} /></td>
                       <td className="px-4 py-3 text-sm">
@@ -945,7 +1010,7 @@ export default function FinancePayablesPage() {
                 })
               ) : (
                 <tr>
-                  <td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={8}>
+                  <td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={9}>
                     No Account Payable found.
                   </td>
                 </tr>
