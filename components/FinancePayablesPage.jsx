@@ -1050,7 +1050,7 @@ export default function FinancePayablesPage() {
         <form id="account-payable-form" onSubmit={handleSubmit} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <FormInput label="Vendor/Supplier" name="supplier_id" type="select" value={formData.supplier_id} onChange={handleInputChange} options={supplierOptions} required error={formErrors.supplier_id} />
-            <FormInput label="Supplier Address" name="supplier_address" value={selectedSupplier?.address || ""} onChange={() => {}} placeholder="Auto from supplier" />
+            <FormInput label="Supplier Address" name="supplier_address" value={selectedSupplier?.address || ""} onChange={() => {}} placeholder="Auto from supplier" readOnly />
             <FormInput label="AP Date" name="ap_date" type="date" value={formData.ap_date} onChange={handleInputChange} required error={formErrors.ap_date} />
             <FormInput label="Receive Date" name="receive_date" type="date" value={formData.receive_date} onChange={handleInputChange} />
             <FormInput label="Due Date" name="due_date" type="date" value={formData.due_date} onChange={handleInputChange} required error={formErrors.due_date} />

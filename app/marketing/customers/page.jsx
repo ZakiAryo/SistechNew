@@ -23,7 +23,14 @@ export default function MarketingCustomersPage() {
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "customer_code", label: "Customer Code", placeholder: "CUST-001", nullable: true },
+        {
+          name: "customer_code",
+          label: "Customer Code",
+          placeholder: "Auto generated",
+          nullable: true,
+          readOnly: true,
+          helperText: "Generated automatically on save."
+        },
         { name: "name", label: "Customer Name", placeholder: "PT Example", required: true },
         { name: "email", label: "Email", type: "email", placeholder: "contact@company.com", nullable: true },
         { name: "phone", label: "Phone", placeholder: "+62 21 555 0101", nullable: true },

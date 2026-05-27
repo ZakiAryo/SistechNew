@@ -6,7 +6,7 @@ import AppLayout from "./AppLayout";
 import FormInput from "./FormInput";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
-import { formatCurrency, formatDate, todayIso } from "@/lib/accountPayable";
+import { formatCurrency, formatDate, paymentTerms, todayIso } from "@/lib/accountPayable";
 import { writeAuditLog } from "@/lib/audit";
 import { fetchProfileByUserId } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -536,11 +536,11 @@ export default function AccountReceivablePage() {
       >
         <form id="account-receivable-form" onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
           <FormInput label="Contract" name="contract_id" type="select" value={formData.contract_id} onChange={handleInputChange} options={contractOptions} required error={formErrors.contract_id} />
-          <FormInput label="Contract Number" name="contract_number" value={formData.contract_number} onChange={() => {}} placeholder="Auto from contract" />
-          <FormInput label="Customer" name="customer_display" value={contracts.find((contract) => contract.id === formData.contract_id)?.customers?.name || ""} onChange={() => {}} placeholder="Auto from contract" />
-          <FormInput label="Project" name="project_display" value={contracts.find((contract) => contract.id === formData.contract_id)?.projects?.project_name || ""} onChange={() => {}} placeholder="Auto from contract" />
+          <FormInput label="Contract Number" name="contract_number" value={formData.contract_number} onChange={() => {}} placeholder="Auto from contract" readOnly />
+          <FormInput label="Customer" name="customer_display" value={contracts.find((contract) => contract.id === formData.contract_id)?.customers?.name || ""} onChange={() => {}} placeholder="Auto from contract" readOnly />
+          <FormInput label="Project" name="project_display" value={contracts.find((contract) => contract.id === formData.contract_id)?.projects?.project_name || ""} onChange={() => {}} placeholder="Auto from contract" readOnly />
           <FormInput label="Contract Value" name="contract_value" type="number" value={formData.contract_value} onChange={handleInputChange} />
-          <FormInput label="Payment Term" name="payment_term" value={formData.payment_term} onChange={handleInputChange} placeholder="Auto from contract" />
+          <FormInput label="Payment Term" name="payment_term" type="select" value={formData.payment_term} onChange={handleInputChange} options={paymentTerms} placeholder="Select payment term" />
           <FormInput label="Invoice Date" name="invoice_date" type="date" value={formData.invoice_date} onChange={handleInputChange} required error={formErrors.invoice_date} />
           <FormInput label="Due Date" name="due_date" type="date" value={formData.due_date} onChange={handleInputChange} required error={formErrors.due_date} />
           <FormInput label="Amount" name="amount" type="number" value={formData.amount} onChange={handleInputChange} error={formErrors.amount} />

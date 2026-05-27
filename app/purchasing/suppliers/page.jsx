@@ -23,7 +23,14 @@ export default function PurchasingSuppliersPage() {
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "supplier_code", label: "Supplier Code", placeholder: "SUP-001", nullable: true },
+        {
+          name: "supplier_code",
+          label: "Supplier Code",
+          placeholder: "Auto generated",
+          nullable: true,
+          readOnly: true,
+          helperText: "Generated automatically on save."
+        },
         { name: "name", label: "Supplier Name", placeholder: "PT Supplier", required: true },
         { name: "email", label: "Email", type: "email", placeholder: "sales@supplier.com", nullable: true },
         { name: "phone", label: "Phone", placeholder: "+62 21 555 1101", nullable: true },

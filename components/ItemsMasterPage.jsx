@@ -26,7 +26,14 @@ export default function ItemsMasterPage({
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "item_code", label: "Item Code", placeholder: "ITM-001", required: true },
+        {
+          name: "item_code",
+          label: "Item Code",
+          placeholder: "Auto generated",
+          nullable: true,
+          readOnly: true,
+          helperText: "Generated automatically on save."
+        },
         { name: "name", label: "Item / Material Name", placeholder: "Material name", required: true },
         { name: "category", label: "Category", placeholder: "Mechanical / Electrical", nullable: true },
         { name: "unit", label: "Unit", placeholder: "pcs, set, meter", nullable: true },

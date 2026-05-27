@@ -1,4 +1,5 @@
 import MasterDataPage from "@/components/MasterDataPage";
+import { paymentTerms } from "@/lib/accountPayable";
 
 const statusOptions = [
   { value: "draft", label: "Draft" },
@@ -29,7 +30,14 @@ export default function ContractsPage() {
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "contract_number", label: "Contract Number", placeholder: "CTR-001", nullable: true },
+        {
+          name: "contract_number",
+          label: "Contract Number",
+          placeholder: "Auto generated",
+          nullable: true,
+          readOnly: true,
+          helperText: "Generated automatically on save."
+        },
         { name: "contract_title", label: "Contract Title", placeholder: "Contract title", required: true },
         {
           name: "project_id",
@@ -55,7 +63,15 @@ export default function ContractsPage() {
         { name: "contract_date", label: "Contract Date", type: "date", nullable: true },
         { name: "start_date", label: "Start Date", type: "date", nullable: true },
         { name: "end_date", label: "End Date", type: "date", nullable: true },
-        { name: "payment_term", label: "Payment Term", placeholder: "NET 30 / Termin 1", nullable: true },
+        {
+          name: "payment_term",
+          label: "Payment Term",
+          type: "select",
+          placeholder: "Select payment term",
+          options: paymentTerms,
+          defaultValue: "NET 30",
+          nullable: true
+        },
         { name: "due_date", label: "Due Date", type: "date", nullable: true },
         { name: "status", label: "Status", type: "select", options: statusOptions, defaultValue: "draft", required: true },
         { name: "document_url", label: "Document URL", placeholder: "https://...", nullable: true, fullWidth: true }

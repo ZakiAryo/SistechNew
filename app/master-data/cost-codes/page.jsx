@@ -21,7 +21,14 @@ export default function CostCodesPage() {
         { key: "status", label: "Status", format: "badge" }
       ]}
       fields={[
-        { name: "code", label: "Code", placeholder: "ENG-100", required: true },
+        {
+          name: "code",
+          label: "Code",
+          placeholder: "Auto generated",
+          nullable: true,
+          readOnly: true,
+          helperText: "Generated automatically on save."
+        },
         { name: "name", label: "Name", placeholder: "Engineering Design", required: true },
         { name: "category", label: "Category", placeholder: "Engineering", nullable: true },
         {

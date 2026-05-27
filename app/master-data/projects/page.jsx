@@ -26,7 +26,14 @@ export default function ProjectsPage() {
         { key: "end_date", label: "End", format: "date" }
       ]}
       fields={[
-        { name: "project_code", label: "Project Code", placeholder: "PRJ-001", nullable: true },
+        {
+          name: "project_code",
+          label: "Project Code",
+          placeholder: "Auto generated",
+          nullable: true,
+          readOnly: true,
+          helperText: "Generated automatically on save."
+        },
         { name: "project_name", label: "Project Name", placeholder: "Project name", required: true },
         {
           name: "customer_id",

@@ -494,6 +494,9 @@ export default function MasterDataPage({
                 error={formErrors[field.name]}
                 options={field.options}
                 rows={field.rows}
+                readOnly={field.readOnly}
+                disabled={field.disabled}
+                helperText={field.helperText}
               />
             </div>
           ))}
