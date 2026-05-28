@@ -1636,3 +1636,38 @@ drop trigger if exists on_account_receivable_overdue on public.account_receivabl
 create trigger on_account_receivable_overdue
 after insert or update on public.account_receivables
 for each row execute function public.notify_account_receivable_overdue();
+
+create or replace function public.prevent_admin_lockout()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if old.role = 'admin'
+     and (new.role is distinct from old.role or new.is_active is distinct from old.is_active)
+     and (coalesce(new.role, '') <> 'admin' or coalesce(new.is_active, false) = false) then
+
+    if auth.uid() = old.id then
+      raise exception 'You cannot remove your own admin access or deactivate your own admin profile.';
+    end if;
+
+    if not exists (
+      select 1
+      from public.profiles
+      where id <> old.id
+        and role = 'admin'
+        and coalesce(is_active, true) = true
+    ) then
+      raise exception 'At least one active admin profile is required.';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists prevent_admin_lockout on public.profiles;
+create trigger prevent_admin_lockout
+before update of role, is_active on public.profiles
+for each row execute function public.prevent_admin_lockout();

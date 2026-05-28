@@ -69,6 +69,10 @@ export default function UserManagementPage({ mode = "users" }) {
   }, []);
 
   const isAdmin = profile?.role === "admin";
+  const currentProfileId = currentUser?.id || profile?.id;
+  const isEditingCurrentAdmin = Boolean(
+    editingUser?.id && editingUser.id === currentProfileId && editingUser?.role === "admin"
+  );
   const title = mode === "access" ? t("users.accessControl", "Access Control") : t("users.manageUser", "Manage User");
   const description =
     mode === "access"
@@ -234,6 +238,22 @@ export default function UserManagementPage({ mode = "users" }) {
 
     if (!validRoles.includes(formData.role)) {
       errors.role = "User role is invalid.";
+    }
+
+    if (editingUser?.id === currentProfileId && editingUser?.role === "admin") {
+      if (formData.role !== "admin") {
+        errors.role = t(
+          "users.selfAdminRoleLocked",
+          "You cannot change your own admin role. Ask another admin to make this change."
+        );
+      }
+
+      if (formData.is_active !== "true") {
+        errors.is_active = t(
+          "users.selfAdminStatusLocked",
+          "You cannot deactivate your own admin profile."
+        );
+      }
     }
 
     setFormErrors(errors);
@@ -445,10 +465,40 @@ export default function UserManagementPage({ mode = "users" }) {
         }
       >
         <form id="user-management-form" onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+          {isEditingCurrentAdmin ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-800 sm:col-span-2">
+              {t(
+                "users.selfAdminProtection",
+                "This is your current admin account. Role and active status are locked to prevent accidental admin lockout."
+              )}
+            </div>
+          ) : null}
           <FormInput label={t("common.fullName", "Full Name")} name="full_name" value={formData.full_name} onChange={handleInputChange} />
           <FormInput label={t("common.email", "Email")} name="email" type="email" value={formData.email} onChange={handleInputChange} required error={formErrors.email} />
-          <FormInput label={t("common.role", "Role")} name="role" type="select" value={formData.role} onChange={handleInputChange} options={translatedRoleOptions} required error={formErrors.role} />
-          <FormInput label={t("common.status", "Status")} name="is_active" type="select" value={formData.is_active} onChange={handleInputChange} options={translatedActiveOptions} required />
+          <FormInput
+            label={t("common.role", "Role")}
+            name="role"
+            type="select"
+            value={formData.role}
+            onChange={handleInputChange}
+            options={translatedRoleOptions}
+            required
+            error={formErrors.role}
+            disabled={isEditingCurrentAdmin}
+            helperText={isEditingCurrentAdmin ? t("users.adminSelfLockedHelper", "Locked for your current admin account.") : undefined}
+          />
+          <FormInput
+            label={t("common.status", "Status")}
+            name="is_active"
+            type="select"
+            value={formData.is_active}
+            onChange={handleInputChange}
+            options={translatedActiveOptions}
+            required
+            error={formErrors.is_active}
+            disabled={isEditingCurrentAdmin}
+            helperText={isEditingCurrentAdmin ? t("users.adminSelfLockedHelper", "Locked for your current admin account.") : undefined}
+          />
           {mode === "access" ? (
             <div className="sm:col-span-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
