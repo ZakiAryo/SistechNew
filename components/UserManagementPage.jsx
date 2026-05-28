@@ -74,6 +74,15 @@ export default function UserManagementPage({ mode = "users" }) {
       : "Manage profile information and role assignment for registered users.";
   const menuCatalog = useMemo(() => getMenuAccessCatalog(), []);
   const baseMenuHrefs = useMemo(() => getBaseMenuHrefsForRole(formData.role), [formData.role]);
+  const adminOnlyMenuHrefs = useMemo(
+    () =>
+      new Set(
+        menuCatalog.flatMap((section) =>
+          section.items.filter((item) => item.adminOnly).map((item) => item.href)
+        )
+      ),
+    [menuCatalog]
+  );
 
   const visibleRows = rows.filter((row) => {
     const haystack = [row.full_name, row.email, row.role].filter(Boolean).join(" ").toLowerCase();
@@ -225,7 +234,7 @@ export default function UserManagementPage({ mode = "users" }) {
       email: formData.email.trim(),
       role: formData.role,
       is_active: formData.is_active === "true",
-      menu_access: normalizeMenuAccess(formData.menu_access)
+      menu_access: normalizeMenuAccess(formData.menu_access).filter((href) => !adminOnlyMenuHrefs.has(href))
     };
 
     const { error: updateError } = await supabase
@@ -424,7 +433,10 @@ export default function UserManagementPage({ mode = "users" }) {
                       <div className="mt-3 space-y-2">
                         {section.items.map((item) => {
                           const roleDefault = baseMenuHrefs.includes(item.href);
-                          const checked = roleDefault || normalizeMenuAccess(formData.menu_access).includes(item.href);
+                          const adminOnlyLocked = item.adminOnly && !roleDefault;
+                          const checked =
+                            roleDefault ||
+                            (!item.adminOnly && normalizeMenuAccess(formData.menu_access).includes(item.href));
 
                           return (
                             <label key={item.href} className="flex items-start gap-2 text-sm text-slate-700">
@@ -432,7 +444,7 @@ export default function UserManagementPage({ mode = "users" }) {
                                 type="checkbox"
                                 className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 disabled:opacity-60"
                                 checked={checked}
-                                disabled={roleDefault}
+                                disabled={roleDefault || adminOnlyLocked}
                                 onChange={() => handleMenuAccessChange(item.href)}
                               />
                               <span>
@@ -440,6 +452,11 @@ export default function UserManagementPage({ mode = "users" }) {
                                 {roleDefault ? (
                                   <span className="ml-2 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
                                     Role
+                                  </span>
+                                ) : null}
+                                {adminOnlyLocked ? (
+                                  <span className="ml-2 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                                    Admin only
                                   </span>
                                 ) : null}
                                 <span className="block text-xs text-slate-400">{item.href}</span>
