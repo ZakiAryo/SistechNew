@@ -4,17 +4,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Menu, UserCircle } from "lucide-react";
-import { roleLabels } from "@/lib/menuConfig";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useLanguage } from "./LanguageProvider";
+import { getRoleTranslationKey } from "@/lib/i18n";
 import { subscribeToNotificationChanges } from "@/lib/notifications";
 import { normalizeRole } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 export default function Topbar({ onOpenSidebar, profile, profileError, profileLoading }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const roleKey = normalizeRole(profile?.role);
-  const roleLabel = roleLabels[roleKey] || profile?.role;
+  const roleLabel = t(getRoleTranslationKey(roleKey), profile?.role || "");
 
   const supabase = useMemo(() => {
     try {
@@ -82,23 +85,24 @@ export default function Topbar({ onOpenSidebar, profile, profileError, profileLo
             type="button"
             className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 lg:hidden"
             onClick={onOpenSidebar}
-            aria-label="Open sidebar"
-            title="Open sidebar"
+            aria-label={t("common.openSidebar", "Open sidebar")}
+            title={t("common.openSidebar", "Open sidebar")}
           >
             <Menu className="h-5 w-5" />
           </button>
           <div>
             <p className="text-sm font-semibold text-slate-950">SISTECH</p>
-            <p className="text-xs text-slate-500">Modern operations workspace</p>
+            <p className="text-xs text-slate-500">{t("app.subtitle", "Modern operations workspace")}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <Link
             href="/notifications"
             className="relative hidden h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 sm:inline-flex"
-            aria-label="Notifications"
-            title="Notifications"
+            aria-label={t("topbar.notifications", "Notifications")}
+            title={t("topbar.notifications", "Notifications")}
           >
             <Bell className="h-4 w-4" />
             {unreadCount > 0 ? (
@@ -112,8 +116,8 @@ export default function Topbar({ onOpenSidebar, profile, profileError, profileLo
             <div className="max-w-48">
               <p className="truncate text-sm font-medium text-slate-800">
                 {profileLoading
-                  ? "Loading profile"
-                  : profile?.full_name || profile?.email || "Profile unavailable"}
+                  ? t("common.loadingProfile", "Loading profile")
+                  : profile?.full_name || profile?.email || t("common.profileUnavailable", "Profile unavailable")}
               </p>
               <p
                 className={`truncate text-xs capitalize ${
@@ -121,7 +125,9 @@ export default function Topbar({ onOpenSidebar, profile, profileError, profileLo
                 }`}
                 title={profileError || undefined}
               >
-                {profileLoading ? "Loading role" : roleLabel || "Role unavailable"}
+                {profileLoading
+                  ? t("common.loadingRole", "Loading role")
+                  : roleLabel || t("common.roleUnavailable", "Role unavailable")}
               </p>
             </div>
           </div>
@@ -130,10 +136,12 @@ export default function Topbar({ onOpenSidebar, profile, profileError, profileLo
             className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
             onClick={handleLogout}
             disabled={loading}
-            title="Logout"
+            title={t("common.logout", "Logout")}
           >
             <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">{loading ? "Signing out" : "Logout"}</span>
+            <span className="hidden sm:inline">
+              {loading ? t("common.signingOut", "Signing out") : t("common.logout", "Logout")}
+            </span>
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Banknote, ClipboardList, CreditCard, FileClock, FileText, FolderKanban, Handshake, Receipt, Truck, WalletCards } from "lucide-react";
 import AppLayout from "./AppLayout";
+import { useLanguage } from "./LanguageProvider";
 import PageHeader from "./PageHeader";
 import StatCard from "./StatCard";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -21,6 +22,7 @@ const iconMap = {
 };
 
 export default function ModuleDashboard({ title, description, stats, children }) {
+  const { t } = useLanguage();
   const [values, setValues] = useState({});
   const [setupError, setSetupError] = useState("");
   const supabase = useMemo(() => {
@@ -75,7 +77,11 @@ export default function ModuleDashboard({ title, description, stats, children })
 
   return (
     <AppLayout>
-      <PageHeader title={title} description={description} eyebrow="Dashboard" />
+      <PageHeader
+        title={t(`page.${title}`, title)}
+        description={t(`pageDescription.${title}`, description)}
+        eyebrow={t("dashboard.title", "Dashboard")}
+      />
       {setupError ? (
         <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           {setupError}
@@ -85,10 +91,10 @@ export default function ModuleDashboard({ title, description, stats, children })
         {stats.map((stat) => (
           <StatCard
             key={stat.label}
-            label={stat.label}
+            label={t(`dashboard.stat.${stat.label}`, stat.label)}
             value={values[stat.label] ?? 0}
             icon={iconMap[stat.iconKey] || FileText}
-            helper={stat.helper}
+            helper={stat.helper ? t(`dashboard.helper.${stat.helper}`, stat.helper) : undefined}
           />
         ))}
       </div>

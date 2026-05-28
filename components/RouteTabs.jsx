@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "./LanguageProvider";
+import { getMenuTranslationKey } from "@/lib/i18n";
 import { getMenuSectionsForProfile } from "@/lib/menuConfig";
 
 function isActivePath(pathname, href) {
@@ -32,6 +34,7 @@ function findActiveIndex(items, pathname) {
 
 export default function RouteTabs({ profile }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const [pendingIndex, setPendingIndex] = useState(null);
   const sections = getMenuSectionsForProfile(profile);
   const activeSection = findActiveSection(sections, pathname);
@@ -52,6 +55,7 @@ export default function RouteTabs({ profile }) {
       <div className="inline-flex min-w-full gap-1 rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm">
         {items.map((item, index) => {
           const active = index === visibleIndex;
+          const itemLabel = t(getMenuTranslationKey(item.href), item.label);
 
           return (
             <Link
@@ -65,7 +69,7 @@ export default function RouteTabs({ profile }) {
               }`}
               aria-current={index === activeIndex ? "page" : undefined}
             >
-              {item.label}
+              {itemLabel}
             </Link>
           );
         })}

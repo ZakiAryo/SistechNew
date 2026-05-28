@@ -13,7 +13,8 @@ import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
 import { getCurrentProfile } from "@/lib/auth";
-import { roleLabels } from "@/lib/menuConfig";
+import { getRoleTranslationKey, translate } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18nServer";
 import { normalizeRole } from "@/lib/profile";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
@@ -151,17 +152,25 @@ async function loadDashboardData() {
 
 export default async function DashboardPage() {
   const { stats, profile, setupError } = await loadDashboardData();
+  const locale = await getServerLocale();
+  const t = (key, fallback, variables) => translate(locale, key, fallback, variables);
   const roleKey = normalizeRole(profile?.role);
+  const roleLabel = t(getRoleTranslationKey(roleKey), profile?.role || "");
 
   return (
     <AppLayout>
       <PageHeader
-        title="Dashboard"
-        description="Role-based overview for realtime workflow data across SISTECH divisions."
-        eyebrow="Overview"
+        title={t("dashboard.title", "Dashboard")}
+        description={t(
+          "dashboard.description",
+          "Role-based overview for realtime workflow data across SISTECH divisions."
+        )}
+        eyebrow={t("dashboard.eyebrow", "Overview")}
         actions={
           <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-sm font-medium capitalize text-slate-700 ring-1 ring-slate-200">
-            Role: {roleLabels[roleKey] || profile?.role || "Role unavailable"}
+            {t("dashboard.role", "Role: {{role}}", {
+              role: roleLabel || t("common.roleUnavailable", "Role unavailable")
+            })}
           </span>
         }
       />
@@ -176,17 +185,21 @@ export default async function DashboardPage() {
         {stats.map((stat) => (
           <StatCard
             key={`${stat.table}-${stat.label}`}
-            label={stat.label}
+            label={t(`dashboard.stat.${stat.label}`, stat.label)}
             value={stat.value}
             icon={stat.icon}
-            helper={stat.warning ? "Count fallback is 0. Check database schema and policies." : "Current system total"}
+            helper={
+              stat.warning
+                ? t("dashboard.countFallback", "Count fallback is 0. Check database schema and policies.")
+                : t("dashboard.currentSystemTotal", "Current system total")
+            }
           />
         ))}
       </div>
 
       {!setupError && !stats.length ? (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500">
-          No dashboard statistics are available for this profile role.
+          {t("dashboard.empty", "No dashboard statistics are available for this profile role.")}
         </div>
       ) : null}
     </AppLayout>

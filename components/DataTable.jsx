@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Edit2, ExternalLink, FileSearch, Trash2 } from "lucide-react";
+import { useLanguage } from "./LanguageProvider";
 
 function getNestedValue(row, key) {
   return key.split(".").reduce((value, part) => value?.[part], row);
@@ -25,13 +26,13 @@ function badgeClass(value) {
   return "bg-slate-100 text-slate-700 ring-slate-200";
 }
 
-function formatValue(value, column) {
+function formatValue(value, column, locale, t) {
   if (value === null || value === undefined || value === "") {
     return <span className="text-slate-400">-</span>;
   }
 
   if (column.format === "date") {
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat(locale === "id" ? "id-ID" : "en-US", {
       day: "2-digit",
       month: "short",
       year: "numeric"
@@ -53,7 +54,7 @@ function formatValue(value, column) {
           value
         )}`}
       >
-        {String(value).replaceAll("_", " ")}
+        {t(`status.${String(value).toLowerCase()}`, String(value).replaceAll("_", " "))}
       </span>
     );
   }
@@ -74,6 +75,7 @@ export default function DataTable({
   detailBasePath,
   documentUrlKey
 }) {
+  const { locale, t } = useLanguage();
   const showActions = Boolean(canManage || detailBasePath || documentUrlKey);
   const actionButtonCount = (detailBasePath ? 1 : 0) + (documentUrlKey ? 1 : 0) + (canManage ? 2 : 0);
   const actionColumnWidth = showActions ? Math.max(96, actionButtonCount * 36 + 16) : 0;
@@ -135,7 +137,7 @@ export default function DataTable({
                   className="whitespace-nowrap px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
                   style={{ width: column.width || `${100 / Math.max(columns.length, 1)}%` }}
                 >
-                  {column.label}
+                  {t(`column.${column.label}`, column.label)}
                 </th>
               ))}
               {showActions ? (
@@ -144,7 +146,7 @@ export default function DataTable({
                   className="whitespace-nowrap px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500"
                   style={{ width: actionColumnWidth }}
                 >
-                  Actions
+                  {t("common.action", "Action")}
                 </th>
               ) : null}
             </tr>
@@ -157,7 +159,9 @@ export default function DataTable({
                     key={column.key}
                     className={`px-3 py-3 text-sm text-slate-700 ${column.className || ""}`}
                   >
-                    <div className="min-w-0 truncate">{formatValue(getNestedValue(row, column.key), column)}</div>
+                    <div className="min-w-0 truncate">
+                      {formatValue(getNestedValue(row, column.key), column, locale, t)}
+                    </div>
                   </td>
                 ))}
                 {showActions ? (
@@ -167,8 +171,8 @@ export default function DataTable({
                         <Link
                           href={`${detailBasePath}/${row.id}`}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-cyan-700 hover:bg-cyan-50"
-                          aria-label="Detail record"
-                          title="Detail"
+                          aria-label={t("common.detailRecord", "Detail record")}
+                          title={t("common.detail", "Detail")}
                         >
                           <FileSearch className="h-4 w-4" />
                         </Link>
@@ -179,8 +183,8 @@ export default function DataTable({
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
-                          aria-label="View document"
-                          title="View Contract"
+                          aria-label={t("common.viewDocument", "View document")}
+                          title={t("common.viewContract", "View Contract")}
                         >
                           <ExternalLink className="h-4 w-4" />
                         </a>
@@ -191,8 +195,8 @@ export default function DataTable({
                             type="button"
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100"
                             onClick={() => onEdit(row)}
-                            aria-label="Edit record"
-                            title="Edit"
+                            aria-label={t("common.editRecord", "Edit record")}
+                            title={t("common.edit", "Edit")}
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
@@ -200,8 +204,8 @@ export default function DataTable({
                             type="button"
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-rose-600 hover:bg-rose-50"
                             onClick={() => onDelete(row)}
-                            aria-label="Delete record"
-                            title="Delete"
+                            aria-label={t("common.deleteRecord", "Delete record")}
+                            title={t("common.delete", "Delete")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

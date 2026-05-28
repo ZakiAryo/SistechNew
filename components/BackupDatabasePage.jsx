@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DatabaseBackup, Download, Loader2, Upload } from "lucide-react";
 import AppLayout from "./AppLayout";
+import { useLanguage } from "./LanguageProvider";
 import PageHeader from "./PageHeader";
 import { backupTableOptions, backupTables, groupBackupTables } from "@/lib/backupConfig";
 
@@ -31,6 +32,7 @@ function getBackupRowCount(payload, tableName) {
 }
 
 export default function BackupDatabasePage() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -63,14 +65,14 @@ export default function BackupDatabasePage() {
 
     try {
       if (startAt && endAt && new Date(startAt) > new Date(endAt)) {
-        throw new Error("Start date/time must be before end date/time.");
+        throw new Error(t("backup.invalidRange", "Start date/time must be before end date/time."));
       }
 
       const params = new URLSearchParams({ format });
       const tablesToBackup = backupScope === "all" ? backupTables : selectedTables;
 
       if (!tablesToBackup.length) {
-        throw new Error("Select at least one database table to backup.");
+        throw new Error(t("backup.noSelection", "Select at least one database table to backup."));
       }
 
       params.set("tables", backupScope === "all" ? "all" : tablesToBackup.join(","));
@@ -211,9 +213,12 @@ export default function BackupDatabasePage() {
   return (
     <AppLayout>
       <PageHeader
-        title="Backup Database"
-        description="Export important SISTECH operational data from a server-side admin endpoint."
-        eyebrow="Administration"
+        title={t("backup.title", "Backup Database")}
+        description={t(
+          "backup.description",
+          "Export important SISTECH operational data from a server-side admin endpoint."
+        )}
+        eyebrow={t("section.Administration", "Administration")}
       />
 
       {message ? (
@@ -229,20 +234,32 @@ export default function BackupDatabasePage() {
               <DatabaseBackup className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-base font-semibold text-slate-950">Operational Backup</h2>
+              <h2 className="text-base font-semibold text-slate-950">
+                {t("backup.operationalBackup", "Operational Backup")}
+              </h2>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                Choose all operational database tables or select only the module data that needs to be exported.
-                The generated file includes metadata, row counts, and clean table sections.
+                {t(
+                  "backup.operationalBackupDescription",
+                  "Choose all operational database tables or select only the module data that needs to be exported. The generated file includes metadata, row counts, and clean table sections."
+                )}
               </p>
             </div>
           </div>
 
           <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <p className="text-sm font-semibold text-slate-800">Backup Scope</p>
+            <p className="text-sm font-semibold text-slate-800">{t("backup.scope", "Backup Scope")}</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {[
-                { value: "all", label: "All Database", description: "Export every supported operational table." },
-                { value: "selected", label: "Selected Tables", description: "Choose specific data tables or modules." }
+                {
+                  value: "all",
+                  label: t("backup.allDatabase", "All Database"),
+                  description: t("backup.allDatabaseDescription", "Export every supported operational table.")
+                },
+                {
+                  value: "selected",
+                  label: t("backup.selectedTables", "Selected Tables"),
+                  description: t("backup.selectedTablesDescription", "Choose specific data tables or modules.")
+                }
               ].map((option) => (
                 <button
                   key={option.value}
@@ -265,9 +282,14 @@ export default function BackupDatabasePage() {
             <div className="mt-5 rounded-lg border border-slate-200">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Select Database Tables</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    {t("backup.selectDatabaseTables", "Select Database Tables")}
+                  </h3>
                   <p className="text-xs text-slate-500">
-                    {selectedTables.length} of {backupTables.length} tables selected.
+                    {t("backup.selectedCount", "{{selected}} of {{total}} tables selected.", {
+                      selected: selectedTables.length,
+                      total: backupTables.length
+                    })}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -276,21 +298,23 @@ export default function BackupDatabasePage() {
                     className="h-8 rounded-md border border-slate-300 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
                     onClick={() => setSelectedTables(backupTables)}
                   >
-                    Select All
+                    {t("common.selectAll", "Select All")}
                   </button>
                   <button
                     type="button"
                     className="h-8 rounded-md border border-slate-300 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
                     onClick={() => setSelectedTables([])}
                   >
-                    Clear
+                    {t("common.clear", "Clear")}
                   </button>
                 </div>
               </div>
               <div className="grid gap-4 p-4 md:grid-cols-2">
                 {Object.entries(groupedBackupTables).map(([groupName, options]) => (
                   <div key={groupName}>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{groupName}</p>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      {t(`backup.group.${groupName}`, groupName)}
+                    </p>
                     <div className="space-y-2">
                       {options.map((option) => (
                         <label
@@ -298,7 +322,9 @@ export default function BackupDatabasePage() {
                           className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:border-cyan-200 hover:bg-cyan-50/40"
                         >
                           <span>
-                            <span className="block font-medium text-slate-800">{option.label}</span>
+                            <span className="block font-medium text-slate-800">
+                              {t(`backup.table.${option.value}`, option.label)}
+                            </span>
                             <span className="block text-xs text-slate-500">{option.value}</span>
                           </span>
                           <input
@@ -318,7 +344,7 @@ export default function BackupDatabasePage() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
-              <span>Start Date & Time</span>
+              <span>{t("backup.startAt", "Start Date & Time")}</span>
               <input
                 type="datetime-local"
                 value={startAt}
@@ -327,7 +353,7 @@ export default function BackupDatabasePage() {
               />
             </label>
             <label className="block text-sm font-medium text-slate-700">
-              <span>End Date & Time</span>
+              <span>{t("backup.endAt", "End Date & Time")}</span>
               <input
                 type="datetime-local"
                 value={endAt}
@@ -338,7 +364,10 @@ export default function BackupDatabasePage() {
           </div>
 
           <p className="mt-3 text-xs leading-5 text-slate-500">
-            Leave both fields empty to export all records. Date range filters records by `created_at`.
+            {t(
+              "backup.dateRangeHelp",
+              "Leave both fields empty to export all records. Date range filters records by `created_at`."
+            )}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -349,7 +378,7 @@ export default function BackupDatabasePage() {
               disabled={loading}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Download JSON
+              {t("common.downloadJson", "Download JSON")}
             </button>
             <button
               type="button"
@@ -358,7 +387,7 @@ export default function BackupDatabasePage() {
               disabled={loading}
             >
               <Download className="h-4 w-4" />
-              Download CSV
+              {t("common.downloadCsv", "Download CSV")}
             </button>
           </div>
         </div>
@@ -369,23 +398,29 @@ export default function BackupDatabasePage() {
               <Upload className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-base font-semibold text-slate-950">Restore From Backup</h2>
+              <h2 className="text-base font-semibold text-slate-950">
+                {t("backup.restoreFromBackup", "Restore From Backup")}
+              </h2>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                Upload a SISTECH JSON backup to restore data with safe upsert by record id.
-                Run schema migrations first when restoring into a fresh Supabase project.
+                {t(
+                  "backup.restoreDescription",
+                  "Upload a SISTECH JSON backup to restore data with safe upsert by record id. Run schema migrations first when restoring into a fresh Supabase project."
+                )}
               </p>
             </div>
           </div>
 
           <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-            Restore does not recreate Supabase Auth accounts. If you restore users/profiles into a new Supabase project,
-            create the Auth users first so profile ids and user references can match.
+            {t(
+              "backup.restoreAuthWarning",
+              "Restore does not recreate Supabase Auth accounts. If you restore users/profiles into a new Supabase project, create the Auth users first so profile ids and user references can match."
+            )}
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
             <div>
               <label className="block text-sm font-medium text-slate-700">
-                <span>Upload JSON Backup</span>
+                <span>{t("backup.uploadJsonBackup", "Upload JSON Backup")}</span>
                 <input
                   type="file"
                   accept="application/json,.json"
@@ -397,11 +432,15 @@ export default function BackupDatabasePage() {
               {restorePayload ? (
                 <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                   <p>
-                    <span className="font-semibold text-slate-900">{restoreFile?.name}</span> contains{" "}
-                    <span className="font-semibold text-slate-900">{restoreAvailableTables.length}</span> supported tables.
+                    {t("backup.supportedTables", "{{file}} contains {{count}} supported tables.", {
+                      file: restoreFile?.name || "-",
+                      count: restoreAvailableTables.length
+                    })}
                   </p>
                   <p className="mt-1 text-xs">
-                    Generated at: {restorePayload.meta?.generated_at || restorePayload.meta?.requested_at || "Unknown"}
+                    {t("backup.generatedAt", "Generated at: {{value}}", {
+                      value: restorePayload.meta?.generated_at || restorePayload.meta?.requested_at || "Unknown"
+                    })}
                   </p>
                 </div>
               ) : null}
@@ -409,11 +448,13 @@ export default function BackupDatabasePage() {
               {restorePayload ? (
                 <div className="mt-5 rounded-lg border border-slate-200">
                   <div className="border-b border-slate-200 px-4 py-3">
-                    <p className="text-sm font-semibold text-slate-900">Restore Scope</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {t("backup.restoreScope", "Restore Scope")}
+                    </p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {[
-                        { value: "all", label: "All Tables In File" },
-                        { value: "selected", label: "Selected Tables" }
+                        { value: "all", label: t("backup.allTablesInFile", "All Tables In File") },
+                        { value: "selected", label: t("backup.selectedTables", "Selected Tables") }
                       ].map((option) => (
                         <button
                           key={option.value}
@@ -435,7 +476,9 @@ export default function BackupDatabasePage() {
                     <div className="grid gap-4 p-4 md:grid-cols-2">
                       {Object.entries(groupedRestoreTables).map(([groupName, options]) => (
                         <div key={groupName}>
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{groupName}</p>
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            {t(`backup.group.${groupName}`, groupName)}
+                          </p>
                           <div className="space-y-2">
                             {options.map((option) => (
                               <label
@@ -443,9 +486,14 @@ export default function BackupDatabasePage() {
                                 className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:border-emerald-200 hover:bg-emerald-50/40"
                               >
                                 <span>
-                                  <span className="block font-medium text-slate-800">{option.label}</span>
+                                  <span className="block font-medium text-slate-800">
+                                    {t(`backup.table.${option.value}`, option.label)}
+                                  </span>
                                   <span className="block text-xs text-slate-500">
-                                    {option.value} - {getBackupRowCount(restorePayload, option.value)} rows
+                                    {option.value} -{" "}
+                                    {t("backup.rows", "{{count}} rows", {
+                                      count: getBackupRowCount(restorePayload, option.value)
+                                    })}
                                   </span>
                                 </span>
                                 <input
@@ -466,21 +514,23 @@ export default function BackupDatabasePage() {
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-sm font-semibold text-slate-900">Restore Summary</h3>
+              <h3 className="text-sm font-semibold text-slate-900">
+                {t("backup.restoreSummary", "Restore Summary")}
+              </h3>
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">File</dt>
+                  <dt className="text-slate-500">{t("common.file", "File")}</dt>
                   <dd className="max-w-[180px] truncate font-medium text-slate-800">{restoreFile?.name || "-"}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Tables</dt>
+                  <dt className="text-slate-500">{t("common.tables", "Tables")}</dt>
                   <dd className="font-medium text-slate-800">
                     {restorePayload ? (restoreScope === "all" ? restoreAvailableTables.length : restoreTables.length) : 0}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Mode</dt>
-                  <dd className="font-medium text-slate-800">Upsert by id</dd>
+                  <dt className="text-slate-500">{t("common.mode", "Mode")}</dt>
+                  <dd className="font-medium text-slate-800">{t("common.upsertById", "Upsert by id")}</dd>
                 </div>
               </dl>
 
@@ -491,7 +541,7 @@ export default function BackupDatabasePage() {
                 disabled={restoreLoading || !restoreFile}
               >
                 {restoreLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                Upload & Restore JSON
+                {t("backup.uploadRestoreJson", "Upload & Restore JSON")}
               </button>
 
               {restoreResult ? (
@@ -499,7 +549,9 @@ export default function BackupDatabasePage() {
                   {restoreResult.results?.map((result) => (
                     <div key={result.table} className="border-b border-slate-100 px-3 py-2 text-xs last:border-b-0">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="font-semibold text-slate-800">{result.label}</span>
+                        <span className="font-semibold text-slate-800">
+                          {t(`backup.table.${result.table}`, result.label)}
+                        </span>
                         <span
                           className={`rounded-full px-2 py-0.5 font-medium ${
                             result.status === "failed"
@@ -513,7 +565,9 @@ export default function BackupDatabasePage() {
                         </span>
                       </div>
                       <p className="mt-1 text-slate-500">
-                        {result.restored_rows || 0} rows restored
+                        {t("backup.rowsRestored", "{{count}} rows restored", {
+                          count: result.restored_rows || 0
+                        })}
                         {result.error ? ` - ${result.error}` : ""}
                       </p>
                     </div>

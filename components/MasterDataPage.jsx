@@ -7,6 +7,7 @@ import AppLayout from "./AppLayout";
 import ConfirmDialog from "./ConfirmDialog";
 import DataTable from "./DataTable";
 import FormInput from "./FormInput";
+import { useLanguage } from "./LanguageProvider";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
 import { writeAuditLog } from "@/lib/audit";
@@ -64,6 +65,7 @@ export default function MasterDataPage({
   documentUrlKey,
   useMenuAccessForManage = true
 }) {
+  const { t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [profile, setProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -80,6 +82,8 @@ export default function MasterDataPage({
   const [toast, setToast] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const pathname = usePathname();
+  const pageTitle = t(`page.${title}`, title);
+  const entityLabel = t(`entity.${entityName}`, entityName);
 
   const supabase = useMemo(() => {
     try {
@@ -221,7 +225,7 @@ export default function MasterDataPage({
 
   function openCreateForm() {
     if (!canManage) {
-      setToast({ type: "error", message: "Your role is not allowed to add records here." });
+      setToast({ type: "error", message: t("master.addDenied", "Your role is not allowed to add records here.") });
       return;
     }
 
@@ -233,7 +237,7 @@ export default function MasterDataPage({
 
   function openEditForm(record) {
     if (!canManage) {
-      setToast({ type: "error", message: "Your role is not allowed to edit records here." });
+      setToast({ type: "error", message: t("master.editDenied", "Your role is not allowed to edit records here.") });
       return;
     }
 
@@ -262,16 +266,18 @@ export default function MasterDataPage({
       const value = String(formData[field.name] || "").trim();
 
       if (field.required && !value) {
-        errors[field.name] = `${field.label} is required.`;
+        errors[field.name] = t("validation.required", "{{field}} is required.", {
+          field: t(`field.${field.label}`, field.label)
+        });
       }
 
       if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        errors[field.name] = "Enter a valid email address.";
+        errors[field.name] = t("validation.email", "Enter a valid email address.");
       }
     });
 
     if (formData.start_date && formData.end_date && formData.start_date > formData.end_date) {
-      errors.end_date = "End date must be after start date.";
+      errors.end_date = t("validation.endDateAfterStart", "End date must be after start date.");
     }
 
     setFormErrors(errors);
@@ -303,7 +309,10 @@ export default function MasterDataPage({
     event.preventDefault();
 
     if (!canManage) {
-      setToast({ type: "error", message: "Your role is not allowed to perform this action." });
+      setToast({
+        type: "error",
+        message: t("master.actionDenied", "Your role is not allowed to perform this action.")
+      });
       return;
     }
 
@@ -336,7 +345,9 @@ export default function MasterDataPage({
       });
       setToast({
         type: "success",
-        message: `${entityName} ${editingRecord ? "updated" : "created"} successfully.`
+        message: t(editingRecord ? "master.updated" : "master.created", "{{entity}} saved successfully.", {
+          entity: entityLabel
+        })
       });
       setIsFormOpen(false);
       setEditingRecord(null);
@@ -352,7 +363,10 @@ export default function MasterDataPage({
     }
 
     if (!canManage) {
-      setToast({ type: "error", message: "Your role is not allowed to perform this action." });
+      setToast({
+        type: "error",
+        message: t("master.actionDenied", "Your role is not allowed to perform this action.")
+      });
       return;
     }
 
@@ -374,7 +388,7 @@ export default function MasterDataPage({
         recordId: recordToDelete.id,
         metadata: recordToDelete
       });
-      setToast({ type: "success", message: `${entityName} deleted successfully.` });
+      setToast({ type: "success", message: t("master.deleted", "{{entity}} deleted successfully.", { entity: entityLabel }) });
       setRecordToDelete(null);
       await loadRows();
     }
@@ -385,29 +399,33 @@ export default function MasterDataPage({
   return (
     <AppLayout>
       <PageHeader
-        title={title}
-        description={description}
-        eyebrow="Master Data"
+        title={pageTitle}
+        description={t(`pageDescription.${title}`, description)}
+        eyebrow={t("section.Master Data", "Master Data")}
         actions={
           <>
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
               onClick={loadRows}
-              title="Refresh"
+              title={t("common.refresh", "Refresh")}
             >
               <RefreshCw className="h-4 w-4" />
-              <span className="hidden sm:inline">Refresh</span>
+              <span className="hidden sm:inline">{t("common.refresh", "Refresh")}</span>
             </button>
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={openCreateForm}
               disabled={!canManage}
-              title={canManage ? `Add ${entityName}` : "Role permission required"}
+              title={
+                canManage
+                  ? t("master.addEntity", "Add {{entity}}", { entity: entityLabel })
+                  : t("master.rolePermissionRequired", "Role permission required")
+              }
             >
               <Plus className="h-4 w-4" />
-              Add
+              {t("common.add", "Add")}
             </button>
           </>
         }
@@ -417,8 +435,10 @@ export default function MasterDataPage({
         <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <ShieldAlert className="mt-0.5 h-4 w-4 flex-none" />
           <p>
-            Current RLS policies allow all authenticated users to read master data. Insert,
-            update, and delete actions require an allowed operational role.
+            {t(
+              "master.readOnlyNotice",
+              "Current RLS policies allow all authenticated users to read master data. Insert, update, and delete actions require an allowed operational role."
+            )}
           </p>
         </div>
       ) : null}
@@ -429,13 +449,15 @@ export default function MasterDataPage({
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder={`Search ${title.toLowerCase()}`}
+            placeholder={t("master.searchPlaceholder", "Search {{title}}", { title: pageTitle.toLowerCase() })}
             className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </label>
         <p className="text-sm text-slate-500">
-          Showing <span className="font-medium text-slate-800">{visibleRows.length}</span> of{" "}
-          <span className="font-medium text-slate-800">{rows.length}</span> records
+          {t("master.showing", "Showing {{visible}} of {{total}} records", {
+            visible: visibleRows.length,
+            total: rows.length
+          })}
         </p>
       </div>
 
@@ -444,8 +466,8 @@ export default function MasterDataPage({
         rows={visibleRows}
         loading={loading}
         error={error}
-        emptyTitle={`No ${title.toLowerCase()} found`}
-        emptyDescription="Try another keyword or add a new record."
+        emptyTitle={t("master.emptyTitle", "No {{title}} found", { title: pageTitle.toLowerCase() })}
+        emptyDescription={t("master.emptyDescription", "Try another keyword or add a new record.")}
         onEdit={openEditForm}
         onDelete={setRecordToDelete}
         canManage={canManage}
@@ -455,8 +477,12 @@ export default function MasterDataPage({
 
       <Modal
         open={isFormOpen}
-        title={editingRecord ? `Edit ${entityName}` : `Add ${entityName}`}
-        description="Fill in the required fields and keep master data consistent."
+        title={
+          editingRecord
+            ? t("master.editEntity", "Edit {{entity}}", { entity: entityLabel })
+            : t("master.addEntity", "Add {{entity}}", { entity: entityLabel })
+        }
+        description={t("master.formDescription", "Fill in the required fields and keep master data consistent.")}
         onClose={submitting ? undefined : () => setIsFormOpen(false)}
         footer={
           <div className="flex justify-end gap-2">
@@ -466,7 +492,7 @@ export default function MasterDataPage({
               onClick={() => setIsFormOpen(false)}
               disabled={submitting}
             >
-              Cancel
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               type="submit"
@@ -475,7 +501,7 @@ export default function MasterDataPage({
               disabled={submitting}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Save
+              {t("common.save", "Save")}
             </button>
           </div>
         }
@@ -484,12 +510,12 @@ export default function MasterDataPage({
           {hydratedFields.map((field) => (
             <div key={field.name} className={field.fullWidth ? "sm:col-span-2" : ""}>
               <FormInput
-                label={field.label}
+                label={t(`field.${field.label}`, field.label)}
                 name={field.name}
                 type={field.type}
                 value={formData[field.name]}
                 onChange={handleInputChange}
-                placeholder={field.placeholder}
+                placeholder={field.placeholder ? t(`field.placeholder.${field.placeholder}`, field.placeholder) : undefined}
                 required={field.required}
                 error={formErrors[field.name]}
                 options={field.options}
@@ -505,8 +531,10 @@ export default function MasterDataPage({
 
       <ConfirmDialog
         open={Boolean(recordToDelete)}
-        title={`Delete ${entityName}`}
-        description={`Are you sure you want to delete this ${entityName.toLowerCase()}?`}
+        title={t("master.deleteEntity", "Delete {{entity}}", { entity: entityLabel })}
+        description={t("master.deleteConfirm", "Are you sure you want to delete this {{entity}}?", {
+          entity: entityLabel.toLowerCase()
+        })}
         loading={deleting}
         onCancel={() => setRecordToDelete(null)}
         onConfirm={handleDelete}

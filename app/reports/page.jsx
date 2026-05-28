@@ -2,7 +2,8 @@ import Link from "next/link";
 import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { getCurrentProfile } from "@/lib/auth";
-import { roleLabels } from "@/lib/menuConfig";
+import { getMenuTranslationKey, getRoleTranslationKey, translate } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/i18nServer";
 import { normalizeRole } from "@/lib/profile";
 import { getReportsForRole } from "@/lib/reportConfig";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
@@ -40,16 +41,21 @@ async function loadReports() {
 
 export default async function ReportsPage() {
   const { reports, role, error } = await loadReports();
+  const locale = await getServerLocale();
+  const t = (key, fallback, variables) => translate(locale, key, fallback, variables);
 
   return (
     <AppLayout>
       <PageHeader
-        title="Reports"
-        description="Realtime report entry points filtered by your profile role. Admin can access every report."
-        eyebrow="System"
+        title={t("menu./reports", "Reports")}
+        description={t(
+          "reports.description",
+          "Realtime report entry points filtered by your profile role. Admin can access every report."
+        )}
+        eyebrow={t("section.System", "System")}
         actions={
           <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200">
-            {roleLabels[role] || "Role unavailable"}
+            {t(getRoleTranslationKey(role), t("common.roleUnavailable", "Role unavailable"))}
           </span>
         }
       />
@@ -64,7 +70,9 @@ export default async function ReportsPage() {
         {reports.map((report) => (
           <Link key={report.href} href={report.href} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-cyan-200 hover:shadow-soft">
             <p className="text-xs font-semibold uppercase tracking-wider text-cyan-700">{report.module}</p>
-            <h2 className="mt-2 text-base font-semibold text-slate-950">{report.label}</h2>
+            <h2 className="mt-2 text-base font-semibold text-slate-950">
+              {t(getMenuTranslationKey(report.href), report.label)}
+            </h2>
             <p className="mt-2 text-sm text-slate-500">{report.description}</p>
           </Link>
         ))}
@@ -72,7 +80,7 @@ export default async function ReportsPage() {
 
       {!error && !reports.length ? (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500">
-          No reports are assigned to this role.
+          {t("reports.empty", "No reports are assigned to this role.")}
         </div>
       ) : null}
     </AppLayout>

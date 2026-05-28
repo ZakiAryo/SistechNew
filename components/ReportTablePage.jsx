@@ -5,6 +5,7 @@ import { RefreshCw, Search, ShieldAlert } from "lucide-react";
 import AppLayout from "./AppLayout";
 import DataTable from "./DataTable";
 import ExportActions from "./ExportActions";
+import { useLanguage } from "./LanguageProvider";
 import PageHeader from "./PageHeader";
 import { fetchProfileByUserId, normalizeRole } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -37,6 +38,7 @@ export default function ReportTablePage({
   eyebrow = "Report",
   allowedRoles = EMPTY_ARRAY
 }) {
+  const { t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -59,6 +61,7 @@ export default function ReportTablePage({
     [allowedRoles]
   );
   const requiresRoleAccess = normalizedAllowedRoles.length > 0;
+  const pageTitle = t(`page.${title}`, title);
 
   useEffect(() => {
     let active = true;
@@ -126,7 +129,9 @@ export default function ReportTablePage({
         role,
         error: canAccess
           ? ""
-          : `Access denied. This report is only available for ${normalizedAllowedRoles.join(", ")} role.`
+          : t("report.accessDenied", "Access denied. This report is only available for {{roles}} role.", {
+              roles: normalizedAllowedRoles.join(", ")
+            })
       });
     }
 
@@ -135,7 +140,7 @@ export default function ReportTablePage({
     return () => {
       active = false;
     };
-  }, [normalizedAllowedRoles, requiresRoleAccess, supabase]);
+  }, [normalizedAllowedRoles, requiresRoleAccess, supabase, t]);
 
   const loadRows = useCallback(async () => {
     if (!supabase) {
@@ -201,15 +206,15 @@ export default function ReportTablePage({
   return (
     <AppLayout>
       <PageHeader
-        title={title}
-        description={description}
-        eyebrow={eyebrow}
-        actions={access.canAccess ? <ExportActions title={title} columns={columns} rows={exportRows} /> : null}
+        title={pageTitle}
+        description={t(`pageDescription.${title}`, description)}
+        eyebrow={t(`section.${eyebrow}`, eyebrow)}
+        actions={access.canAccess ? <ExportActions title={pageTitle} columns={columns} rows={exportRows} /> : null}
       />
 
       {access.loading ? (
         <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500">
-          Checking report access
+          {t("report.checkingAccess", "Checking report access")}
         </div>
       ) : null}
 
@@ -228,7 +233,9 @@ export default function ReportTablePage({
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={`Search ${title.toLowerCase()}`}
+                placeholder={t("master.searchPlaceholder", "Search {{title}}", {
+                  title: pageTitle.toLowerCase()
+                })}
                 className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
               />
             </label>
@@ -238,7 +245,7 @@ export default function ReportTablePage({
               onClick={loadRows}
             >
               <RefreshCw className="h-4 w-4" />
-              Refresh
+              {t("common.refresh", "Refresh")}
             </button>
           </div>
 
@@ -247,8 +254,11 @@ export default function ReportTablePage({
             rows={visibleRows}
             loading={loading}
             error={error}
-            emptyTitle={`No ${title.toLowerCase()} found`}
-            emptyDescription="The report will populate when workflow transactions are available."
+            emptyTitle={t("master.emptyTitle", "No {{title}} found", { title: pageTitle.toLowerCase() })}
+            emptyDescription={t(
+              "report.emptyDescription",
+              "The report will populate when workflow transactions are available."
+            )}
             canManage={false}
             onEdit={() => {}}
             onDelete={() => {}}

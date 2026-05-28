@@ -31,7 +31,13 @@ import {
   WalletCards,
   X
 } from "lucide-react";
-import { getMenuSectionsForProfile, roleLabels } from "@/lib/menuConfig";
+import { useLanguage } from "./LanguageProvider";
+import {
+  getMenuTranslationKey,
+  getRoleTranslationKey,
+  getSectionTranslationKey
+} from "@/lib/i18n";
+import { getMenuSectionsForProfile } from "@/lib/menuConfig";
 import { normalizeRole } from "@/lib/profile";
 
 function isActivePath(pathname, href) {
@@ -109,8 +115,10 @@ export default function Sidebar({
   onToggleCollapsed
 }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const role = profile?.role || "";
   const roleKey = normalizeRole(role);
+  const roleLabel = t(getRoleTranslationKey(roleKey), role || "");
   const menuSections = getMenuSectionsForProfile(profile);
 
   return (
@@ -128,7 +136,7 @@ export default function Sidebar({
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:pl-3 lg:pr-6" : ""}`}>
+        <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:pl-3 lg:pr-7" : ""}`}>
           <Link href="/dashboard" className={`flex items-center gap-3 ${collapsed ? "lg:justify-center" : ""}`} onClick={onClose}>
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-sm font-semibold text-white">
               ST
@@ -137,7 +145,9 @@ export default function Sidebar({
               <span className="block text-base font-semibold tracking-normal text-slate-950">
                 SISTECH
               </span>
-              <span className="block text-xs font-medium text-slate-500">Internal System</span>
+              <span className="block text-xs font-medium text-slate-500">
+                {t("app.internalSystem", "Internal System")}
+              </span>
             </span>
           </Link>
           <button
@@ -146,8 +156,8 @@ export default function Sidebar({
               collapsed ? "absolute -right-5 top-1/2 z-10 h-8 w-8 -translate-y-1/2 shadow-sm" : "h-9 w-9"
             }`}
             onClick={onToggleCollapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t("common.expandSidebar", "Expand sidebar") : t("common.closeSidebar", "Close sidebar")}
+            title={collapsed ? t("common.expandSidebar", "Expand sidebar") : t("common.closeSidebar", "Close sidebar")}
           >
             {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
@@ -155,8 +165,8 @@ export default function Sidebar({
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 lg:hidden"
             onClick={onClose}
-            aria-label="Close sidebar"
-            title="Close sidebar"
+            aria-label={t("common.closeSidebar", "Close sidebar")}
+            title={t("common.closeSidebar", "Close sidebar")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -165,25 +175,27 @@ export default function Sidebar({
         <nav className={`flex-1 overflow-y-auto py-5 ${collapsed ? "space-y-2 px-3" : "space-y-6 px-4"}`}>
           {profileLoading ? (
             <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-              Loading role menu
+              {t("sidebar.loadingMenu", "Loading role menu")}
             </p>
           ) : profileError ? (
             <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              Menu unavailable until public.profiles is fixed.
+              {t("sidebar.menuUnavailable", "Menu unavailable until public.profiles is fixed.")}
             </p>
           ) : menuSections.length ? (
             menuSections.map((section) => {
               const activeIndex = findActiveIndex(section.items, pathname);
+              const sectionLabel = t(getSectionTranslationKey(section.title), section.title);
 
               return (
                 <div key={section.title} className={collapsed ? "lg:space-y-1" : ""}>
                   <p className={`px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 ${collapsed ? "lg:hidden" : ""}`}>
-                    {section.title}
+                    {sectionLabel}
                   </p>
                   <div className={collapsed ? "space-y-1 lg:mt-0" : "mt-2 space-y-1"}>
                     {section.items.map((item, index) => {
                       const active = index === activeIndex && isActivePath(pathname, item.href);
                       const ItemIcon = getItemIcon(item);
+                      const itemLabel = t(getMenuTranslationKey(item.href), item.label);
 
                       return (
                         <Link
@@ -191,7 +203,7 @@ export default function Sidebar({
                           href={item.href}
                           onClick={onClose}
                           aria-current={active ? "page" : undefined}
-                          title={collapsed ? item.label : undefined}
+                          title={collapsed ? itemLabel : undefined}
                           className={`group relative flex min-h-10 items-center rounded-md py-2 text-sm font-medium transition-all duration-200 ${
                             collapsed ? "justify-center px-2 lg:h-10 lg:w-10 lg:mx-auto" : "gap-3 pl-8 pr-3"
                           } ${
@@ -204,11 +216,11 @@ export default function Sidebar({
                             <span className={`absolute inset-y-2 w-1 rounded-full bg-cyan-500 ${collapsed ? "left-1" : "left-3"}`} />
                           ) : null}
                           <ItemIcon className={`h-4 w-4 flex-none ${collapsed ? "hidden lg:block" : "text-slate-500"}`} />
-                          <span className={`leading-5 ${collapsed ? "lg:hidden" : ""}`}>{item.label}</span>
+                          <span className={`leading-5 ${collapsed ? "lg:hidden" : ""}`}>{itemLabel}</span>
                           <span className={`pointer-events-none absolute left-full top-1/2 z-[90] ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-slate-200 bg-slate-950 px-2.5 py-1.5 text-xs font-semibold text-white shadow-lg ${
                             collapsed ? "group-hover:lg:block" : ""
                           }`}>
-                            {item.label}
+                            {itemLabel}
                           </span>
                         </Link>
                       );
@@ -219,7 +231,9 @@ export default function Sidebar({
             })
           ) : (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              No sidebar menu is configured for role: {role || "missing role"}.
+              {t("sidebar.noMenu", "No sidebar menu is configured for role: {{role}}.", {
+                role: role || "missing role"
+              })}
             </p>
           )}
         </nav>
@@ -228,15 +242,15 @@ export default function Sidebar({
           <div className="rounded-lg bg-slate-50 p-3">
             <div className={`flex items-center gap-2 text-sm font-semibold text-slate-800 ${collapsed ? "justify-center" : ""}`}>
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span className={collapsed ? "lg:hidden" : ""}>System Access</span>
+              <span className={collapsed ? "lg:hidden" : ""}>{t("sidebar.systemAccess", "System Access")}</span>
             </div>
             <p className={`mt-1 text-xs leading-5 text-slate-500 ${collapsed ? "lg:hidden" : ""}`}>
-              Active role:{" "}
+              {t("sidebar.activeRole", "Active role")}:{" "}
               {profileLoading
-                ? "Loading role"
+                ? t("common.loadingRole", "Loading role")
                 : profileError
-                  ? "Profile error"
-                  : roleLabels[roleKey] || role || "Role unavailable"}
+                  ? t("sidebar.profileError", "Profile error")
+                  : roleLabel || t("common.roleUnavailable", "Role unavailable")}
             </p>
           </div>
         </div>

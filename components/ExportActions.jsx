@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, FileSpreadsheet, Printer } from "lucide-react";
+import { useLanguage } from "./LanguageProvider";
 
 function escapeCell(value) {
   const stringValue = value === null || value === undefined ? "" : String(value);
@@ -20,8 +21,10 @@ function downloadBlob(content, filename, type) {
 }
 
 export default function ExportActions({ title, columns, rows }) {
+  const { t } = useLanguage();
+
   function exportExcel() {
-    const header = columns.map((column) => escapeCell(column.label)).join(",");
+    const header = columns.map((column) => escapeCell(t(`column.${column.label}`, column.label))).join(",");
     const body = rows
       .map((row) => columns.map((column) => escapeCell(row[column.key] ?? row[column.exportKey])).join(","))
       .join("\n");
@@ -30,7 +33,7 @@ export default function ExportActions({ title, columns, rows }) {
   }
 
   function exportPdf() {
-    const tableHead = columns.map((column) => `<th>${column.label}</th>`).join("");
+    const tableHead = columns.map((column) => `<th>${t(`column.${column.label}`, column.label)}</th>`).join("");
     const tableRows = rows
       .map((row) => {
         const cells = columns.map((column) => `<td>${row[column.key] ?? row[column.exportKey] ?? ""}</td>`).join("");
@@ -91,7 +94,7 @@ export default function ExportActions({ title, columns, rows }) {
       </button>
       <span className="hidden items-center gap-1 text-xs text-slate-400 sm:inline-flex">
         <Download className="h-3.5 w-3.5" />
-        {rows.length} rows
+        {t("backup.rows", "{{count}} rows", { count: rows.length })}
       </span>
     </div>
   );

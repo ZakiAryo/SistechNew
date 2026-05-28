@@ -4,9 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Loader2, Pencil, RefreshCw, Search } from "lucide-react";
 import AppLayout from "./AppLayout";
 import FormInput from "./FormInput";
+import { useLanguage } from "./LanguageProvider";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
 import { writeAuditLog } from "@/lib/audit";
+import {
+  getMenuTranslationKey,
+  getRoleTranslationKey,
+  getSectionTranslationKey
+} from "@/lib/i18n";
 import { getBaseMenuHrefsForRole, getMenuAccessCatalog, normalizeMenuAccess } from "@/lib/menuConfig";
 import { fetchProfileByUserId } from "@/lib/profile";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
@@ -18,11 +24,6 @@ const roleOptions = [
   { value: "purchasing", label: "Purchasing" },
   { value: "finance", label: "Finance" },
   { value: "user", label: "User" }
-];
-
-const activeOptions = [
-  { value: "true", label: "Active" },
-  { value: "false", label: "Inactive" }
 ];
 
 function badgeClass(value) {
@@ -38,6 +39,7 @@ function badgeClass(value) {
 }
 
 export default function UserManagementPage({ mode = "users" }) {
+  const { locale, t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [profile, setProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -67,11 +69,29 @@ export default function UserManagementPage({ mode = "users" }) {
   }, []);
 
   const isAdmin = profile?.role === "admin";
-  const title = mode === "access" ? "Access Control" : "Manage User";
+  const title = mode === "access" ? t("users.accessControl", "Access Control") : t("users.manageUser", "Manage User");
   const description =
     mode === "access"
-      ? "Review and update user role access without changing Supabase Auth passwords."
-      : "Manage profile information and role assignment for registered users.";
+      ? t(
+          "users.accessDescription",
+          "Review and update user role access without changing Supabase Auth passwords."
+        )
+      : t("users.manageDescription", "Manage profile information and role assignment for registered users.");
+  const translatedRoleOptions = useMemo(
+    () =>
+      roleOptions.map((role) => ({
+        ...role,
+        label: t(getRoleTranslationKey(role.value), role.label)
+      })),
+    [t]
+  );
+  const translatedActiveOptions = useMemo(
+    () => [
+      { value: "true", label: t("common.active", "Active") },
+      { value: "false", label: t("common.inactive", "Inactive") }
+    ],
+    [t]
+  );
   const menuCatalog = useMemo(() => getMenuAccessCatalog(), []);
   const baseMenuHrefs = useMemo(() => getBaseMenuHrefsForRole(formData.role), [formData.role]);
   const adminOnlyMenuHrefs = useMemo(
@@ -167,7 +187,7 @@ export default function UserManagementPage({ mode = "users" }) {
 
   function openEditForm(row) {
     if (!isAdmin) {
-      setToast("Only admin can manage users.");
+      setToast(t("users.onlyAdmin", "Only admin can manage users."));
       return;
     }
 
@@ -269,7 +289,7 @@ export default function UserManagementPage({ mode = "users" }) {
       });
     }
 
-    setToast("User profile updated successfully.");
+    setToast(t("users.updatedSuccess", "User profile updated successfully."));
     setIsFormOpen(false);
     setSubmitting(false);
     await loadRows();
@@ -280,7 +300,7 @@ export default function UserManagementPage({ mode = "users" }) {
       <PageHeader
         title={title}
         description={description}
-        eyebrow="Administration"
+        eyebrow={t("section.Administration", "Administration")}
         actions={
           <button
             type="button"
@@ -288,7 +308,7 @@ export default function UserManagementPage({ mode = "users" }) {
             onClick={loadRows}
           >
             <RefreshCw className="h-4 w-4" />
-            Refresh
+            {t("common.refresh", "Refresh")}
           </button>
         }
       />
@@ -302,7 +322,7 @@ export default function UserManagementPage({ mode = "users" }) {
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search user name, email, role"
+            placeholder={t("users.searchPlaceholder", "Search user name, email, role")}
             className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </label>
@@ -311,13 +331,16 @@ export default function UserManagementPage({ mode = "users" }) {
           onChange={(event) => setRoleFilter(event.target.value)}
           className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
         >
-          <option value="">All roles</option>
-          {roleOptions.map((role) => (
+          <option value="">{t("common.allRoles", "All roles")}</option>
+          {translatedRoleOptions.map((role) => (
             <option key={role.value} value={role.value}>{role.label}</option>
           ))}
         </select>
         <p className="flex items-center text-sm text-slate-500">
-          Showing <span className="mx-1 font-semibold text-slate-800">{visibleRows.length}</span> of {rows.length} users
+          {t("users.showing", "Showing {{visible}} of {{total}} users", {
+            visible: visibleRows.length,
+            total: rows.length
+          })}
         </p>
       </div>
 
@@ -326,7 +349,14 @@ export default function UserManagementPage({ mode = "users" }) {
           <table className="min-w-[920px] divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                {["Name", "Email", "Role", "Status", mode === "access" ? "Extra Access" : "Updated", "Action"].map((header) => (
+                {[
+                  t("common.name", "Name"),
+                  t("common.email", "Email"),
+                  t("common.role", "Role"),
+                  t("common.status", "Status"),
+                  mode === "access" ? t("users.extraAccess", "Extra Access") : t("common.updated", "Updated"),
+                  t("common.action", "Action")
+                ].map((header) => (
                   <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {header}
                   </th>
@@ -335,7 +365,11 @@ export default function UserManagementPage({ mode = "users" }) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td className="px-4 py-6 text-sm text-slate-500" colSpan={6}>Loading users...</td></tr>
+                <tr>
+                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={6}>
+                    {t("common.loadingProfile", "Loading profile")}...
+                  </td>
+                </tr>
               ) : visibleRows.length ? (
                 visibleRows.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-50">
@@ -343,19 +377,19 @@ export default function UserManagementPage({ mode = "users" }) {
                     <td className="px-4 py-3 text-sm text-slate-700">{row.email || "-"}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ring-1 ${badgeClass(row.role)}`}>
-                        {row.role || "user"}
+                        {t(getRoleTranslationKey(row.role || "user"), row.role || "user")}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ring-1 ${badgeClass(row.is_active === false ? "inactive" : "active")}`}>
-                        {row.is_active === false ? "Inactive" : "Active"}
+                        {row.is_active === false ? t("common.inactive", "Inactive") : t("common.active", "Active")}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {mode === "access"
-                        ? `${normalizeMenuAccess(row.menu_access).length} menu`
-                        : row.updated_at
-                          ? new Date(row.updated_at).toLocaleDateString("id-ID")
+                          ? `${normalizeMenuAccess(row.menu_access).length} menu`
+                          : row.updated_at
+                          ? new Date(row.updated_at).toLocaleDateString(locale === "id" ? "id-ID" : "en-US")
                           : "-"}
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -364,7 +398,7 @@ export default function UserManagementPage({ mode = "users" }) {
                         className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => openEditForm(row)}
                         disabled={!isAdmin}
-                        title="Edit user access"
+                        title={t("users.editUserAccess", "Edit User Access")}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -372,7 +406,11 @@ export default function UserManagementPage({ mode = "users" }) {
                   </tr>
                 ))
               ) : (
-                <tr><td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={6}>No user profile found.</td></tr>
+                <tr>
+                  <td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={6}>
+                    {t("users.noProfile", "No user profile found.")}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -381,8 +419,8 @@ export default function UserManagementPage({ mode = "users" }) {
 
       <Modal
         open={isFormOpen}
-        title="Edit User Access"
-        description="Update profile data and role access stored in public.profiles."
+        title={t("users.editUserAccess", "Edit User Access")}
+        description={t("users.updateDescription", "Update profile data and role access stored in public.profiles.")}
         onClose={submitting ? undefined : () => setIsFormOpen(false)}
         footer={
           <div className="flex flex-wrap justify-end gap-2">
@@ -392,7 +430,7 @@ export default function UserManagementPage({ mode = "users" }) {
               onClick={() => setIsFormOpen(false)}
               disabled={submitting}
             >
-              Cancel
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               type="submit"
@@ -401,35 +439,40 @@ export default function UserManagementPage({ mode = "users" }) {
               disabled={submitting}
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Save User
+              {t("common.saveUser", "Save User")}
             </button>
           </div>
         }
       >
         <form id="user-management-form" onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-          <FormInput label="Full Name" name="full_name" value={formData.full_name} onChange={handleInputChange} />
-          <FormInput label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} required error={formErrors.email} />
-          <FormInput label="Role" name="role" type="select" value={formData.role} onChange={handleInputChange} options={roleOptions} required error={formErrors.role} />
-          <FormInput label="Status" name="is_active" type="select" value={formData.is_active} onChange={handleInputChange} options={activeOptions} required />
+          <FormInput label={t("common.fullName", "Full Name")} name="full_name" value={formData.full_name} onChange={handleInputChange} />
+          <FormInput label={t("common.email", "Email")} name="email" type="email" value={formData.email} onChange={handleInputChange} required error={formErrors.email} />
+          <FormInput label={t("common.role", "Role")} name="role" type="select" value={formData.role} onChange={handleInputChange} options={translatedRoleOptions} required error={formErrors.role} />
+          <FormInput label={t("common.status", "Status")} name="is_active" type="select" value={formData.is_active} onChange={handleInputChange} options={translatedActiveOptions} required />
           {mode === "access" ? (
             <div className="sm:col-span-2">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-950">Menu Access</h3>
+                    <h3 className="text-sm font-semibold text-slate-950">{t("users.menuAccess", "Menu Access")}</h3>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                      Role default access is checked and locked. Check additional menus to grant extra access.
+                      {t(
+                        "users.menuAccessDescription",
+                        "Role default access is checked and locked. Check additional menus to grant extra access."
+                      )}
                     </p>
                   </div>
                   <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
-                    {normalizeMenuAccess(formData.menu_access).length} extra
+                    {normalizeMenuAccess(formData.menu_access).length} {t("common.extra", "extra")}
                   </span>
                 </div>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   {menuCatalog.map((section) => (
                     <div key={section.title} className="rounded-md border border-slate-200 bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{section.title}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        {t(getSectionTranslationKey(section.title), section.title)}
+                      </p>
                       <div className="mt-3 space-y-2">
                         {section.items.map((item) => {
                           const roleDefault = baseMenuHrefs.includes(item.href);
@@ -448,15 +491,17 @@ export default function UserManagementPage({ mode = "users" }) {
                                 onChange={() => handleMenuAccessChange(item.href)}
                               />
                               <span>
-                                <span className="font-medium text-slate-800">{item.label}</span>
+                                <span className="font-medium text-slate-800">
+                                  {t(getMenuTranslationKey(item.href), item.label)}
+                                </span>
                                 {roleDefault ? (
                                   <span className="ml-2 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
-                                    Role
+                                    {t("common.roleBadge", "Role")}
                                   </span>
                                 ) : null}
                                 {adminOnlyLocked ? (
                                   <span className="ml-2 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
-                                    Admin only
+                                    {t("common.adminOnly", "Admin only")}
                                   </span>
                                 ) : null}
                                 <span className="block text-xs text-slate-400">{item.href}</span>
