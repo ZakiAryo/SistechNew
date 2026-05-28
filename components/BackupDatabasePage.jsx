@@ -382,6 +382,15 @@ export default function BackupDatabasePage() {
             </button>
             <button
               type="button"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-cyan-300 bg-cyan-50 px-4 text-sm font-medium text-cyan-800 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-70"
+              onClick={() => downloadBackup("excel")}
+              disabled={loading}
+            >
+              <Download className="h-4 w-4" />
+              {t("common.downloadExcel", "Download Excel")}
+            </button>
+            <button
+              type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
               onClick={() => downloadBackup("csv")}
               disabled={loading}
@@ -390,6 +399,12 @@ export default function BackupDatabasePage() {
               {t("common.downloadCsv", "Download CSV")}
             </button>
           </div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            {t(
+              "backup.excelFormatHelp",
+              "Use Excel for separated sheets, colored headers, and visible table borders. CSV remains a plain text export."
+            )}
+          </p>
         </div>
 
         <div className="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
