@@ -214,6 +214,9 @@ export default function FinancePayablesPage() {
   }));
 
   const selectedSupplier = suppliers.find((supplier) => supplier.id === formData.supplier_id);
+  const selectedProjectNames = Array.from(
+    new Set(selectedItems.map((item) => item.project_name).filter(Boolean))
+  ).join(", ");
   const totals = selectedItems.reduce(
     (summary, item) => ({
       subtotal: summary.subtotal + Number(item.amount || 0),
@@ -941,10 +944,10 @@ export default function FinancePayablesPage() {
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-[1160px] divide-y divide-slate-200">
+          <table className="min-w-[1280px] divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                {["AP Number", "Supplier", "PO Number", "AP Date", "Due Date", "Aging", "Total", "Status", "Actions"].map((header) => (
+                {["AP Number", "Supplier", "PO Number", "Project Name", "AP Date", "Due Date", "Aging", "Total", "Status", "Actions"].map((header) => (
                   <th key={header} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {header}
                   </th>
@@ -954,7 +957,7 @@ export default function FinancePayablesPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={9}>
+                  <td className="px-4 py-6 text-sm text-slate-500" colSpan={10}>
                     Loading Account Payable...
                   </td>
                 </tr>
@@ -962,13 +965,19 @@ export default function FinancePayablesPage() {
                 filteredRows.map((row) => {
                   const resolvedStatus = resolveApStatus(row);
                   const agingCategory = getAgingCategory(row);
-                  const poNumbers = (row.account_payable_items || []).map((item) => item.po_number).filter(Boolean).join(", ");
+                  const poNumbers = Array.from(
+                    new Set((row.account_payable_items || []).map((item) => item.po_number).filter(Boolean))
+                  ).join(", ");
+                  const projectNames = Array.from(
+                    new Set((row.account_payable_items || []).map((item) => item.project_name).filter(Boolean))
+                  ).join(", ");
 
                   return (
                     <tr key={row.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-sm font-semibold text-slate-900">{row.ap_number || "-"}</td>
                       <td className="px-4 py-3 text-sm text-slate-700">{row.suppliers?.name || "-"}</td>
-                      <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-600">{poNumbers || "-"}</td>
+                      <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-600" title={poNumbers || "-"}>{poNumbers || "-"}</td>
+                      <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-600" title={projectNames || "-"}>{projectNames || "-"}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{formatDate(row.ap_date)}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{formatDate(row.due_date)}</td>
                       <td className="px-4 py-3 text-sm">
@@ -1010,7 +1019,7 @@ export default function FinancePayablesPage() {
                 })
               ) : (
                 <tr>
-                  <td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={9}>
+                  <td className="px-4 py-8 text-center text-sm text-slate-500" colSpan={10}>
                     No Account Payable found.
                   </td>
                 </tr>
@@ -1051,6 +1060,7 @@ export default function FinancePayablesPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <FormInput label="Vendor/Supplier" name="supplier_id" type="select" value={formData.supplier_id} onChange={handleInputChange} options={supplierOptions} required error={formErrors.supplier_id} />
             <FormInput label="Supplier Address" name="supplier_address" value={selectedSupplier?.address || ""} onChange={() => {}} placeholder="Auto from supplier" readOnly />
+            <FormInput label="Project Name" name="project_name" value={selectedProjectNames} onChange={() => {}} placeholder="Auto from selected PO" readOnly />
             <FormInput label="AP Date" name="ap_date" type="date" value={formData.ap_date} onChange={handleInputChange} required error={formErrors.ap_date} />
             <FormInput label="Receive Date" name="receive_date" type="date" value={formData.receive_date} onChange={handleInputChange} />
             <FormInput label="Due Date" name="due_date" type="date" value={formData.due_date} onChange={handleInputChange} required error={formErrors.due_date} />

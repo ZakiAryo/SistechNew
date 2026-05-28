@@ -130,13 +130,13 @@ export default function Sidebar({
         }`}
       >
         <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:pl-3 lg:pr-7" : ""}`}>
-          <Link href="/dashboard" className={`flex items-center gap-3 ${collapsed ? "lg:justify-center" : ""}`} onClick={onClose}>
-            <EnvitechLogo className="h-11 w-16 object-contain" priority />
-            <span className={collapsed ? "lg:hidden" : ""}>
-              <span className="block text-base font-semibold tracking-normal text-slate-950">
+          <Link href="/dashboard" className={`flex items-center gap-2 ${collapsed ? "lg:justify-center" : ""}`} onClick={onClose}>
+            <EnvitechLogo className="h-10 w-16 object-contain" priority />
+            <span className={`leading-none ${collapsed ? "lg:hidden" : ""}`}>
+              <span className="block text-base font-semibold leading-4 tracking-normal text-slate-950">
                 SISTECH
               </span>
-              <span className="block text-xs font-medium text-slate-500">Sistem Integrasi Envitech</span>
+              <span className="mt-0.5 block text-xs font-medium leading-4 text-slate-500">Sistem Integrasi Envitech</span>
             </span>
           </Link>
           <button
