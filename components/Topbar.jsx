@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Bell, LogOut, Menu, UserCircle } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, LifeBuoy, LogOut, Menu, UserCircle } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "./LanguageProvider";
 import { getRoleTranslationKey } from "@/lib/i18n";
@@ -13,11 +13,13 @@ import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 export default function Topbar({ onOpenSidebar, profile, profileError, profileLoading }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const roleKey = normalizeRole(profile?.role);
   const roleLabel = t(getRoleTranslationKey(roleKey), profile?.role || "");
+  const supportHref = pathname === "/support" ? "/support" : `/support?from=${encodeURIComponent(pathname)}`;
 
   const supabase = useMemo(() => {
     try {
@@ -98,6 +100,14 @@ export default function Topbar({ onOpenSidebar, profile, profileError, profileLo
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
+          <Link
+            href={supportHref}
+            className="hidden h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 sm:inline-flex"
+            aria-label={t("support.reportIssue", "Report issue")}
+            title={t("support.reportIssue", "Report issue")}
+          >
+            <LifeBuoy className="h-4 w-4" />
+          </Link>
           <Link
             href="/notifications"
             className="relative hidden h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 sm:inline-flex"

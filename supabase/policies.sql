@@ -684,4 +684,35 @@ for select
 to authenticated
 using (user_id = auth.uid() or public.current_user_role() = 'admin');
 
+alter table public.support_tickets enable row level security;
+
+drop policy if exists "support_tickets_select_own_or_admin" on public.support_tickets;
+create policy "support_tickets_select_own_or_admin"
+on public.support_tickets
+for select
+to authenticated
+using (user_id = auth.uid() or public.current_user_role() = 'admin');
+
+drop policy if exists "support_tickets_insert_own" on public.support_tickets;
+create policy "support_tickets_insert_own"
+on public.support_tickets
+for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists "support_tickets_admin_update" on public.support_tickets;
+create policy "support_tickets_admin_update"
+on public.support_tickets
+for update
+to authenticated
+using (public.current_user_role() = 'admin')
+with check (public.current_user_role() = 'admin');
+
+drop policy if exists "support_tickets_admin_delete" on public.support_tickets;
+create policy "support_tickets_admin_delete"
+on public.support_tickets
+for delete
+to authenticated
+using (public.current_user_role() = 'admin');
+
 -- TODO: tighten field-level workflow transitions with RPC functions before production approval.

@@ -9,6 +9,7 @@ const protectedRoutes = [
   "/engineering",
   "/purchasing",
   "/finance",
+  "/support",
   "/reports",
   "/notifications",
   "/users"
