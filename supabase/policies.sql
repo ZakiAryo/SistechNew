@@ -319,6 +319,12 @@ using (public.current_user_has_role(array['admin']))
 with check (public.current_user_has_role(array['admin']));
 
 drop policy if exists "items_menu_access_manage" on public.items;
+create policy "items_menu_access_manage"
+on public.items
+for all
+to authenticated
+using (public.current_user_has_menu_access(array['/master-data/items']))
+with check (public.current_user_has_menu_access(array['/master-data/items']));
 
 drop policy if exists "purchase_requests_authenticated_read" on public.purchase_requests;
 create policy "purchase_requests_authenticated_read"
