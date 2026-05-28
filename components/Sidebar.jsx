@@ -136,7 +136,7 @@ export default function Sidebar({
               <span className="block text-base font-semibold leading-4 tracking-normal text-slate-950">
                 SISTECH
               </span>
-              <span className="mt-0.5 block text-xs font-medium leading-4 text-slate-500">Sistem Integrasi Envitech</span>
+              <span className="mt-0.5 block text-[11px] font-medium leading-3 text-slate-500">Sistem Integrasi Envitech</span>
             </span>
           </Link>
           <button
