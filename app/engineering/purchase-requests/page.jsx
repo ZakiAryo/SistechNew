@@ -22,6 +22,7 @@ export default function EngineeringPurchaseRequestsPage() {
       entityName="Purchase Request"
       allowedRoles={["engineering"]}
       userIdField="requested_by"
+      detailBasePath="/reports/purchase-requests"
       selectQuery="*, projects(project_code, project_name), items(item_code, name, unit)"
       searchColumns={["pr_number", "projects.project_code", "projects.project_name", "items.item_code", "items.name", "status", "priority", "item_summary"]}
       columns={[

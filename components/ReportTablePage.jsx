@@ -36,7 +36,8 @@ export default function ReportTablePage({
   searchColumns = EMPTY_ARRAY,
   columns = EMPTY_ARRAY,
   eyebrow = "Report",
-  allowedRoles = EMPTY_ARRAY
+  allowedRoles = EMPTY_ARRAY,
+  detailBasePath
 }) {
   const { t } = useLanguage();
   const [rows, setRows] = useState([]);
@@ -259,6 +260,7 @@ export default function ReportTablePage({
               "report.emptyDescription",
               "The report will populate when workflow transactions are available."
             )}
+            detailBasePath={detailBasePath}
             canManage={false}
             onEdit={() => {}}
             onDelete={() => {}}

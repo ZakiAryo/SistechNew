@@ -15,6 +15,7 @@ export default function PurchasingPurchaseOrdersPage() {
       tableName="purchase_orders"
       entityName="Purchase Order"
       allowedRoles={["purchasing"]}
+      detailBasePath="/reports/purchase-orders"
       selectQuery="*, purchase_requests(pr_number), suppliers(supplier_code, name), projects(project_code, project_name), items(item_code, name)"
       searchColumns={["po_number", "purchase_requests.pr_number", "suppliers.name", "projects.project_code", "items.item_code", "items.name", "status", "payment_status"]}
       columns={[

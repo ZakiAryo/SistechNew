@@ -8,6 +8,7 @@ export default function EngineeringPrOutstandingPage() {
       allowedRoles={["engineering"]}
       tableName="purchase_requests"
       selectQuery="*, projects(project_code, project_name)"
+      detailBasePath="/reports/purchase-requests"
       filters={[{ column: "status", operator: "in", value: ["pending", "processed", "approved"] }]}
       searchColumns={["pr_number", "projects.project_code", "projects.project_name", "status", "priority", "item_summary"]}
       columns={[

@@ -31,6 +31,7 @@ import {
   WalletCards,
   X
 } from "lucide-react";
+import EnvitechLogo from "./EnvitechLogo";
 import { getMenuSectionsForProfile, roleLabels } from "@/lib/menuConfig";
 import { normalizeRole } from "@/lib/profile";
 
@@ -130,14 +131,14 @@ export default function Sidebar({
       >
         <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:pl-3 lg:pr-7" : ""}`}>
           <Link href="/dashboard" className={`flex items-center gap-3 ${collapsed ? "lg:justify-center" : ""}`} onClick={onClose}>
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-sm font-semibold text-white">
-              ST
+            <span className="flex h-11 w-16 items-center justify-center rounded-lg border border-slate-200 bg-white p-1.5">
+              <EnvitechLogo className="h-full w-full object-contain" priority />
             </span>
             <span className={collapsed ? "lg:hidden" : ""}>
               <span className="block text-base font-semibold tracking-normal text-slate-950">
                 SISTECH
               </span>
-              <span className="block text-xs font-medium text-slate-500">Internal System</span>
+              <span className="block text-xs font-medium text-slate-500">Sistem Integrasi Envitech</span>
             </span>
           </Link>
           <button

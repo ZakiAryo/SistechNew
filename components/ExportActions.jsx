@@ -2,6 +2,7 @@
 
 import { Download, FileSpreadsheet, Printer } from "lucide-react";
 import { useLanguage } from "./LanguageProvider";
+import { ENVITECH_LOGO_SRC } from "./EnvitechLogo";
 
 function escapeCell(value) {
   const stringValue = value === null || value === undefined ? "" : String(value);
@@ -52,14 +53,28 @@ export default function ExportActions({ title, columns, rows }) {
           <title>${title}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
-            h1 { font-size: 20px; margin-bottom: 16px; }
+            .header { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 18px; }
+            .brand { display: flex; align-items: center; gap: 12px; }
+            .brand img { width: 150px; height: 72px; object-fit: contain; }
+            .brand-title { font-weight: 700; font-size: 18px; letter-spacing: .04em; }
+            .brand-subtitle { font-size: 11px; text-transform: uppercase; color: #475569; letter-spacing: .06em; }
+            h1 { font-size: 20px; margin: 0; text-align: right; }
             table { width: 100%; border-collapse: collapse; font-size: 12px; }
             th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
             th { background: #f1f5f9; }
           </style>
         </head>
         <body>
-          <h1>${title}</h1>
+          <div class="header">
+            <div class="brand">
+              <img src="${ENVITECH_LOGO_SRC}" alt="Envitech Perkasa" />
+              <div>
+                <div class="brand-title">SISTECH</div>
+                <div class="brand-subtitle">Sistem Integrasi Envitech</div>
+              </div>
+            </div>
+            <h1>${title}</h1>
+          </div>
           <table>
             <thead><tr>${tableHead}</tr></thead>
             <tbody>${tableRows}</tbody>

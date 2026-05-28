@@ -8,6 +8,7 @@ export default function PoOutstandingPage() {
       allowedRoles={["purchasing"]}
       tableName="purchase_orders"
       selectQuery="*, suppliers(supplier_code, name), projects(project_code, project_name)"
+      detailBasePath="/reports/purchase-orders"
       filters={[{ column: "status", operator: "in", value: ["waiting", "approved", "delivered"] }]}
       searchColumns={["po_number", "suppliers.name", "projects.project_code", "status", "payment_status"]}
       columns={[

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2, RefreshCw, Search } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, FileSearch, Loader2, RefreshCw, Search } from "lucide-react";
 import AppLayout from "./AppLayout";
 import FormInput from "./FormInput";
 import Modal from "./Modal";
@@ -31,6 +32,7 @@ export default function PurchaseRequestInbox() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
+  const [createdPoReportHref, setCreatedPoReportHref] = useState("");
   const [formData, setFormData] = useState({
     supplier_id: "",
     order_date: "",
@@ -96,6 +98,7 @@ export default function PurchaseRequestInbox() {
   }, [loadRows]);
 
   function openProcessModal(row) {
+    setCreatedPoReportHref("");
     setSelectedPr(row);
     setFormData({
       supplier_id: "",
@@ -168,6 +171,7 @@ export default function PurchaseRequestInbox() {
     });
 
     setToast("Purchase Order created. Delivery Order and PO vs Payment data are now linked.");
+    setCreatedPoReportHref(`/reports/purchase-orders/${poData.id}`);
     setSelectedPr(null);
     setSubmitting(false);
     await loadRows();
@@ -193,7 +197,14 @@ export default function PurchaseRequestInbox() {
 
       {toast ? (
         <div className="mb-4 rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-800">
-          {toast}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{toast}</span>
+            {createdPoReportHref ? (
+              <Link href={createdPoReportHref} className="font-semibold text-cyan-800 underline underline-offset-2">
+                View PO Report
+              </Link>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -234,14 +245,23 @@ export default function PurchaseRequestInbox() {
                     <td className="px-4 py-3 text-sm text-slate-600">{currency(row.estimated_amount)}</td>
                     <td className="px-4 py-3 text-sm capitalize text-slate-600">{row.status}</td>
                     <td className="px-4 py-3 text-sm">
-                      <button
-                        type="button"
-                        className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-                        onClick={() => openProcessModal(row)}
-                        disabled={row.status === "approved"}
-                      >
-                        Convert to PO
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/reports/purchase-requests/${row.id}`}
+                          className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                        >
+                          <FileSearch className="h-4 w-4" />
+                          Report
+                        </Link>
+                        <button
+                          type="button"
+                          className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                          onClick={() => openProcessModal(row)}
+                          disabled={row.status === "approved"}
+                        >
+                          Convert to PO
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

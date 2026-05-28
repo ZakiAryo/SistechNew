@@ -81,6 +81,7 @@ export default function DataTable({
   const actionColumnWidth = showActions ? Math.max(96, actionButtonCount * 36 + 16) : 0;
   const tableMinWidth = Math.max(640, columns.length * 124 + actionColumnWidth);
   const skeletonColumns = columns.length + (showActions ? 1 : 0);
+  const detailLabel = detailBasePath?.startsWith("/reports") ? "Report" : t("common.detail", "Detail");
 
   if (loading) {
     return (
@@ -171,8 +172,8 @@ export default function DataTable({
                         <Link
                           href={`${detailBasePath}/${row.id}`}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-cyan-700 hover:bg-cyan-50"
-                          aria-label={t("common.detailRecord", "Detail record")}
-                          title={t("common.detail", "Detail")}
+                          aria-label={detailLabel}
+                          title={detailLabel}
                         >
                           <FileSearch className="h-4 w-4" />
                         </Link>
