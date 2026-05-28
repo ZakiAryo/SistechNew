@@ -15,6 +15,7 @@ export default function EnvitechLogo({
       width={width}
       height={height}
       priority={priority}
+      unoptimized
       className={className}
     />
   );

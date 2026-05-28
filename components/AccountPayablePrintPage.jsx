@@ -127,9 +127,7 @@ export default function AccountPayablePrintPage({ id }) {
             <header className="grid grid-cols-[1fr_auto] gap-6 border-b-2 border-slate-950 pb-4">
               <div>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-16 w-36 items-center justify-center rounded border border-slate-200 bg-white p-2">
-                    <EnvitechLogo className="h-full w-full object-contain" priority />
-                  </div>
+                  <EnvitechLogo className="h-20 w-52 object-contain" priority />
                   <div>
                     <p className="text-lg font-bold uppercase tracking-wide">SISTECH</p>
                     <p className="text-xs uppercase tracking-wide text-slate-600">Sistem Integrasi Envitech</p>

@@ -34,6 +34,7 @@ export default function ExportActions({ title, columns, rows }) {
   }
 
   function exportPdf() {
+    const logoUrl = new URL(ENVITECH_LOGO_SRC, window.location.origin).href;
     const tableHead = columns.map((column) => `<th>${t(`column.${column.label}`, column.label)}</th>`).join("");
     const tableRows = rows
       .map((row) => {
@@ -55,7 +56,7 @@ export default function ExportActions({ title, columns, rows }) {
             body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
             .header { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 18px; }
             .brand { display: flex; align-items: center; gap: 12px; }
-            .brand img { width: 150px; height: 72px; object-fit: contain; }
+            .brand img { width: 230px; height: 108px; object-fit: contain; display: block; }
             .brand-title { font-weight: 700; font-size: 18px; letter-spacing: .04em; }
             .brand-subtitle { font-size: 11px; text-transform: uppercase; color: #475569; letter-spacing: .06em; }
             h1 { font-size: 20px; margin: 0; text-align: right; }
@@ -67,7 +68,7 @@ export default function ExportActions({ title, columns, rows }) {
         <body>
           <div class="header">
             <div class="brand">
-              <img src="${ENVITECH_LOGO_SRC}" alt="Envitech Perkasa" />
+              <img id="report-logo" src="${logoUrl}" alt="Envitech Perkasa" />
               <div>
                 <div class="brand-title">SISTECH</div>
                 <div class="brand-subtitle">Sistem Integrasi Envitech</div>
@@ -83,8 +84,27 @@ export default function ExportActions({ title, columns, rows }) {
       </html>
     `);
     printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
+
+    const logo = printWindow.document.getElementById("report-logo");
+    let didPrint = false;
+    const printWhenReady = () => {
+      if (didPrint) {
+        return;
+      }
+
+      didPrint = true;
+      printWindow.focus();
+      printWindow.print();
+    };
+
+    if (!logo || logo.complete) {
+      printWhenReady();
+      return;
+    }
+
+    logo.onload = printWhenReady;
+    logo.onerror = printWhenReady;
+    printWindow.setTimeout(printWhenReady, 1200);
   }
 
   return (

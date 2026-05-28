@@ -131,9 +131,7 @@ export default function Sidebar({
       >
         <div className={`relative flex h-16 items-center justify-between border-b border-slate-200 px-5 ${collapsed ? "lg:justify-center lg:pl-3 lg:pr-7" : ""}`}>
           <Link href="/dashboard" className={`flex items-center gap-3 ${collapsed ? "lg:justify-center" : ""}`} onClick={onClose}>
-            <span className="flex h-11 w-16 items-center justify-center rounded-lg border border-slate-200 bg-white p-1.5">
-              <EnvitechLogo className="h-full w-full object-contain" priority />
-            </span>
+            <EnvitechLogo className="h-11 w-16 object-contain" priority />
             <span className={collapsed ? "lg:hidden" : ""}>
               <span className="block text-base font-semibold tracking-normal text-slate-950">
                 SISTECH

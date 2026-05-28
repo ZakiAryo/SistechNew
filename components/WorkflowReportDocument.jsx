@@ -132,9 +132,7 @@ export default function WorkflowReportDocument({ type, record, relatedPo, delive
       <section className="print-sheet mx-auto min-h-[297mm] max-w-5xl rounded-sm border border-slate-200 bg-white p-8 shadow-sm print:min-h-0 print:max-w-none">
         <header className="grid gap-5 border-b-2 border-slate-950 pb-4 sm:grid-cols-[1fr_auto]">
           <div className="flex items-center gap-4">
-            <div className="flex h-20 w-44 items-center justify-center rounded-md border border-slate-200 bg-white p-2">
-              <EnvitechLogo className="h-full w-full object-contain" priority />
-            </div>
+            <EnvitechLogo className="h-24 w-64 object-contain" priority />
             <div>
               <p className="text-lg font-bold uppercase tracking-wide">SISTECH</p>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
