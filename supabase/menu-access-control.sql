@@ -101,16 +101,19 @@ for select
 to authenticated
 using (
   public.current_user_has_role(array['admin', 'engineering', 'purchasing', 'finance'])
-  or public.current_user_has_menu_access(array['/master-data/items', '/purchasing/items', '/engineering/items'])
+  or public.current_user_has_menu_access(array['/master-data/items'])
 );
 
-drop policy if exists "items_menu_access_manage" on public.items;
-create policy "items_menu_access_manage"
+drop policy if exists "items_purchasing_manage" on public.items;
+drop policy if exists "items_admin_manage" on public.items;
+create policy "items_admin_manage"
 on public.items
 for all
 to authenticated
-using (public.current_user_has_menu_access(array['/master-data/items', '/purchasing/items']))
-with check (public.current_user_has_menu_access(array['/master-data/items', '/purchasing/items']));
+using (public.current_user_has_role(array['admin']))
+with check (public.current_user_has_role(array['admin']));
+
+drop policy if exists "items_menu_access_manage" on public.items;
 
 drop policy if exists "contracts_authenticated_read" on public.contracts;
 create policy "contracts_authenticated_read"
