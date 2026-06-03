@@ -446,7 +446,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
         <header className="grid grid-cols-[48mm_1fr_50mm] items-start gap-2">
           <div>
             <EnvitechLogo className="h-[24mm] w-[44mm] object-contain object-left" priority />
-            <p className="text-[7px] font-semibold">PT Envitech Perkasa Sistem</p>
+            <p className="text-[7px] font-semibold">PT Envitech Perkasa</p>
             <p className="text-[6.8px] leading-tight">
               Wisma Pondok Indah 1, Suite 306-307, 3rd floor
               <br />
