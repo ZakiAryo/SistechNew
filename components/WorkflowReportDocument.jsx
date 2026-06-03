@@ -185,11 +185,10 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
         <header className="grid grid-cols-[58mm_1fr_40mm] items-start gap-2">
           <div>
             <EnvitechLogo className="h-[22mm] w-[50mm] object-contain object-left" priority />
-            <p className="mt-1 text-[8px] font-semibold">PT Envitech Perkasa Sistem</p>
-            <p className="text-[7px] leading-tight">
-              Water & Waste Water Treatment
+            <p className="mt-1 text-[7px] leading-tight">
+              Wisma Pondok Indah 1, Suite 306-307, Jl. Sultan Iskandar Muda
               <br />
-              A Toshira Group Company
+              Kav. V-TA, Jakarta Selatan, Phone : 75819050 - Fax. : 75819040
             </p>
           </div>
           <div className="pt-2 text-center">
