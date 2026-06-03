@@ -282,7 +282,7 @@ values
   ('ITM-002', 'Instrumentation Cable', 'Signal cable for instrumentation work', 'Instrumentation', 'meter', 'active'),
   ('ITM-003', 'Mechanical Valve', 'Valve material for mechanical package', 'Mechanical', 'pcs', 'active')
 on conflict (item_code) do update
-set name = excluded.name,
+set name = excluded.name,w
     description = excluded.description,
     category = excluded.category,
     unit = excluded.unit,

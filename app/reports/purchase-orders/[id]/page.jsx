@@ -46,7 +46,8 @@ async function loadPurchaseOrderReport(id) {
       purchase_requests(pr_number, item_summary, request_date, needed_date, priority, quantity, unit, estimated_amount),
       suppliers(supplier_code, name, address, email, phone),
       projects(project_code, project_name),
-      items(item_code, name, unit)
+      items(item_code, name, unit),
+      purchase_order_items(item_name, description, quantity, unit, unit_price, total_price, items(item_code, name, unit), cost_codes(code, name))
     `)
     .eq("id", id)
     .maybeSingle();
