@@ -53,14 +53,14 @@ export default function ExportActions({ title, columns, rows }) {
         <head>
           <title>${title}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+            body { font-family: "Century Schoolbook", "Century Schoolbook L", Georgia, serif; font-size: 11px; padding: 24px; color: #0f172a; }
             .header { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 18px; }
             .brand { display: flex; align-items: center; gap: 12px; }
             .brand img { width: 230px; height: 108px; object-fit: contain; display: block; }
             .brand-title { font-weight: 700; font-size: 18px; letter-spacing: .04em; }
             .brand-subtitle { font-size: 11px; text-transform: uppercase; color: #475569; letter-spacing: .06em; }
             h1 { font-size: 20px; margin: 0; text-align: right; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
             th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
             th { background: #f1f5f9; }
           </style>

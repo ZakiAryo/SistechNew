@@ -157,6 +157,23 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
           border-collapse: collapse;
         }
 
+        .po-doc,
+        .po-doc * {
+          font-family: "Century Schoolbook", "Century Schoolbook L", Georgia, serif !important;
+        }
+
+        .po-doc {
+          font-size: 11px;
+        }
+
+        .po-doc p,
+        .po-doc span,
+        .po-doc div,
+        .po-doc th,
+        .po-doc td {
+          font-size: 11px;
+        }
+
         .po-doc th,
         .po-doc td {
           border: 1px solid #000;
@@ -181,7 +198,7 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
         </button>
       </div>
 
-      <section className="po-doc po-sheet mx-auto min-h-[297mm] w-[210mm] bg-white p-[8mm] text-[9px] leading-tight shadow-sm print:w-auto print:p-0">
+      <section className="po-doc po-sheet mx-auto min-h-[297mm] w-[210mm] bg-white p-[8mm] text-[11px] leading-tight shadow-sm print:w-auto print:p-0">
         <header className="grid grid-cols-[58mm_1fr_40mm] items-start gap-2">
           <div>
             <EnvitechLogo className="h-[22mm] w-[50mm] object-contain object-left" priority />
@@ -418,6 +435,23 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           border-collapse: collapse;
         }
 
+        .pr-doc,
+        .pr-doc * {
+          font-family: "Century Schoolbook", "Century Schoolbook L", Georgia, serif !important;
+        }
+
+        .pr-doc {
+          font-size: 11px;
+        }
+
+        .pr-doc p,
+        .pr-doc span,
+        .pr-doc div,
+        .pr-doc th,
+        .pr-doc td {
+          font-size: 11px;
+        }
+
         .pr-doc th,
         .pr-doc td {
           border: 1px solid #000;
@@ -442,7 +476,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
         </button>
       </div>
 
-      <section className="pr-doc pr-sheet mx-auto min-h-[297mm] w-[210mm] bg-white p-[8mm] text-[8px] leading-tight shadow-sm print:w-auto print:p-0">
+      <section className="pr-doc pr-sheet mx-auto min-h-[297mm] w-[210mm] bg-white p-[8mm] text-[11px] leading-tight shadow-sm print:w-auto print:p-0">
         <header className="grid grid-cols-[48mm_1fr_50mm] items-start gap-2">
           <div>
             <EnvitechLogo className="h-[24mm] w-[44mm] object-contain object-left" priority />
@@ -465,7 +499,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           <div className="pt-4 text-left">
             <p className="text-[7px] uppercase tracking-wide">Draft - Phase Created</p>
             <div className="mt-5 grid grid-cols-[42px_1fr] gap-x-1 text-[8px]">
-              <span className="font-semibold">No. PP :</span>
+              <span className="font-semibold">No. PR :</span>
               <span className="font-bold">{record?.pr_number || "-"}</span>
               <span>Attachment / Lampiran :</span>
               <span>-</span>
@@ -595,6 +629,25 @@ export default function WorkflowReportDocument({ type, record, relatedPo, delive
           .report-table td {
             border: 1px solid #0f172a !important;
           }
+        }
+
+        .print-sheet,
+        .print-sheet * {
+          font-family: "Century Schoolbook", "Century Schoolbook L", Georgia, serif !important;
+        }
+
+        .print-sheet {
+          font-size: 11px;
+        }
+
+        .print-sheet p,
+        .print-sheet span,
+        .print-sheet div,
+        .print-sheet dt,
+        .print-sheet dd,
+        .print-sheet th,
+        .print-sheet td {
+          font-size: 11px;
         }
       `}</style>
 

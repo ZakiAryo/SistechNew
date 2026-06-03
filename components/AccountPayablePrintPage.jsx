@@ -97,6 +97,23 @@ export default function AccountPayablePrintPage({ id }) {
             border: 1px solid #0f172a !important;
           }
         }
+
+        .ap-print,
+        .ap-print * {
+          font-family: "Century Schoolbook", "Century Schoolbook L", Georgia, serif !important;
+        }
+
+        .ap-print {
+          font-size: 11px;
+        }
+
+        .ap-print p,
+        .ap-print span,
+        .ap-print div,
+        .ap-print th,
+        .ap-print td {
+          font-size: 11px;
+        }
       `}</style>
 
       <div className="no-print mx-auto mb-4 flex max-w-5xl justify-between gap-2">
@@ -117,7 +134,7 @@ export default function AccountPayablePrintPage({ id }) {
         </button>
       </div>
 
-      <section className="print-sheet mx-auto min-h-[297mm] max-w-5xl rounded-sm border border-slate-200 bg-white p-8 shadow-sm print:min-h-0 print:max-w-none print:p-0">
+      <section className="ap-print print-sheet mx-auto min-h-[297mm] max-w-5xl rounded-sm border border-slate-200 bg-white p-8 shadow-sm print:min-h-0 print:max-w-none print:p-0">
         {loading ? (
           <p className="text-sm text-slate-500">Loading print document...</p>
         ) : error ? (
