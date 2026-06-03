@@ -367,6 +367,180 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
   );
 }
 
+function PrApprovalBox({ label }) {
+  return (
+    <div className="flex min-h-[23mm] flex-col justify-end border-l border-black text-center">
+      <div className="border-t border-black px-1 py-1 text-[7px] font-semibold leading-tight">
+        {label}
+        <br />
+        Disetujui oleh
+      </div>
+    </div>
+  );
+}
+
+function PurchaseRequestDocument({ record, relatedPo }) {
+  const item = record?.items;
+  const project = record?.projects;
+  const supplier = relatedPo?.suppliers;
+  const quantity = Number(record?.quantity || 1);
+  const unit = record?.unit || item?.unit || "LOT";
+  const description = item?.name || record?.item_summary || "-";
+  const remarks = record?.notes || record?.priority || "-";
+
+  return (
+    <main className="min-h-screen bg-slate-100 px-4 py-6 text-black print:bg-white print:p-0">
+      <style>{`
+        @page {
+          size: A4;
+          margin: 8mm;
+        }
+
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+
+          body {
+            background: white !important;
+          }
+
+          .pr-sheet {
+            box-shadow: none !important;
+            border: 0 !important;
+            width: 100% !important;
+            min-height: auto !important;
+            padding: 0 !important;
+          }
+        }
+
+        .pr-doc table {
+          border-collapse: collapse;
+        }
+
+        .pr-doc th,
+        .pr-doc td {
+          border: 1px solid #000;
+        }
+      `}</style>
+
+      <div className="no-print mx-auto mb-4 flex max-w-[210mm] justify-between gap-2">
+        <Link
+          href="/engineering/purchase-requests"
+          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+        <button
+          type="button"
+          className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+          onClick={() => window.print()}
+        >
+          <Printer className="h-4 w-4" />
+          Print Report
+        </button>
+      </div>
+
+      <section className="pr-doc pr-sheet mx-auto min-h-[297mm] w-[210mm] bg-white p-[8mm] text-[8px] leading-tight shadow-sm print:w-auto print:p-0">
+        <header className="grid grid-cols-[48mm_1fr_50mm] items-start gap-2">
+          <div>
+            <EnvitechLogo className="h-[24mm] w-[44mm] object-contain object-left" priority />
+            <p className="text-[7px] font-semibold">PT Envitech Perkasa Sistem</p>
+            <p className="text-[6.8px] leading-tight">
+              Wisma Pondok Indah 1, Suite 306-307, 3rd floor
+              <br />
+              Jl. Sultan Iskandar Muda Kav. V-TA
+              <br />
+              Jakarta Selatan
+              <br />
+              Phone : 62-21 75819050
+              <br />
+              Fax. : 62-21 75819040
+            </p>
+          </div>
+          <div className="pt-3 text-center">
+            <h1 className="text-[18px] font-bold tracking-wide">PURCHASE REQUEST</h1>
+          </div>
+          <div className="pt-4 text-left">
+            <p className="text-[7px] uppercase tracking-wide">Draft - Phase Created</p>
+            <div className="mt-5 grid grid-cols-[42px_1fr] gap-x-1 text-[8px]">
+              <span className="font-semibold">No. PP :</span>
+              <span className="font-bold">{record?.pr_number || "-"}</span>
+              <span>Attachment / Lampiran :</span>
+              <span>-</span>
+            </div>
+          </div>
+        </header>
+
+        <table className="mt-2 w-full text-[8px]">
+          <thead>
+            <tr>
+              <th className="w-[15mm] px-1 py-1 text-center">Item<br />No.</th>
+              <th className="w-[18mm] px-1 py-1 text-center">Quantity<br />Jumlah</th>
+              <th className="w-[20mm] px-1 py-1 text-center">Unit<br />Satuan</th>
+              <th className="px-1 py-1 text-center">Description<br />Penjelasan</th>
+              <th className="w-[42mm] px-1 py-1 text-center">Remarks<br />Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="align-top">
+              <td className="px-1 py-2 text-center">1</td>
+              <td className="px-1 py-2 text-center">{formatNumber(quantity)}</td>
+              <td className="px-1 py-2 text-center">{unit}</td>
+              <td className="h-[122mm] px-2 py-2 leading-snug">
+                <p>{description}</p>
+                {item?.item_code ? <p>{item.item_code}</p> : null}
+                {record?.needed_date ? <p>Waktu dibutuhkan {formatShortDate(record.needed_date)}</p> : null}
+                {project?.project_name ? <p className="mt-2">Project : {project.project_name}</p> : null}
+              </td>
+              <td className="px-2 py-2 leading-snug">{remarks}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <section className="grid grid-cols-[50mm_1fr] border-x border-b border-black">
+          <div className="border-r border-black px-2 py-1 font-semibold">
+            Required For / Date
+            <br />
+            Diperlukan untuk / Tgl.
+          </div>
+          <div className="px-2 py-1">
+            {project?.project_name || project?.project_code || "-"} / {formatShortDate(record?.needed_date || record?.request_date)}
+          </div>
+        </section>
+
+        <section className="grid grid-cols-[50mm_1fr_78mm] border-x border-b border-black">
+          <div className="border-r border-black px-2 py-2">
+            <p className="font-semibold">Ref. Supplier</p>
+            <p>Ref. Pemasok</p>
+          </div>
+          <div className="border-r border-black px-2 py-2">
+            {supplier?.name || relatedPo?.suppliers?.supplier_code || "-"}
+          </div>
+          <div className="grid grid-cols-3">
+            <PrApprovalBox label="Requested by" />
+            <PrApprovalBox label="Approved by" />
+            <PrApprovalBox label="Approved by" />
+          </div>
+        </section>
+
+        <section className="grid grid-cols-[50mm_1fr_78mm] border-x border-b border-black">
+          <div className="border-r border-black px-2 py-2">
+            <p>Cost Code No. : {project?.project_code || "-"}</p>
+          </div>
+          <div className="border-r border-black px-2 py-2">
+            <p className="font-semibold">Remarks</p>
+            <p>Keterangan</p>
+            <p className="mt-1">{record?.notes || "-"}</p>
+          </div>
+          <div />
+        </section>
+      </section>
+    </main>
+  );
+}
+
 export default function WorkflowReportDocument({ type, record, relatedPo, deliveryOrders = [] }) {
   const isPurchaseOrder = type === "po";
   const reportTitle = isPurchaseOrder ? "PURCHASE ORDER REPORT" : "PURCHASE REQUEST REPORT";
@@ -386,6 +560,10 @@ export default function WorkflowReportDocument({ type, record, relatedPo, delive
 
   if (isPurchaseOrder) {
     return <PurchaseOrderDocument record={record} deliveryOrders={deliveryOrders} />;
+  }
+
+  if (!isPurchaseOrder) {
+    return <PurchaseRequestDocument record={record} relatedPo={relatedPo} />;
   }
 
   return (
