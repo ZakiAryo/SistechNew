@@ -30,9 +30,10 @@ supabase/schema.sql
 supabase/policies.sql
 supabase/seed.sql
 supabase/demo-users.sql
+supabase/project-heartbeat.sql
 ```
 
-Urutan ini penting karena `policies.sql` membutuhkan table dari `schema.sql`, dan `seed.sql` membutuhkan table yang sudah tersedia. Jalankan `demo-users.sql` setelah user dibuat di Supabase Authentication.
+Urutan ini penting karena `policies.sql` membutuhkan table dari `schema.sql`, dan `seed.sql` membutuhkan table yang sudah tersedia. Jalankan `demo-users.sql` setelah user dibuat di Supabase Authentication. File `project-heartbeat.sql` dapat dijalankan ulang dengan aman.
 
 ## Environment Variables
 
@@ -42,6 +43,7 @@ Buat file `.env.local` di root project:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+CRON_SECRET=your-random-secret-at-least-16-characters
 ```
 
 Aturan:
@@ -49,7 +51,8 @@ Aturan:
 - `NEXT_PUBLIC_SUPABASE_URL` boleh dipakai client.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` boleh dipakai client.
 - `SUPABASE_SERVICE_ROLE_KEY` hanya boleh dipakai server-side.
-- Tahap 1 belum memakai service role key di browser maupun client component.
+- `SUPABASE_SERVICE_ROLE_KEY` tidak boleh memakai prefix `NEXT_PUBLIC_` dan tidak boleh diakses dari client component.
+- `CRON_SECRET` melindungi endpoint heartbeat. Gunakan string acak minimal 16 karakter.
 
 ## Run Local
 
@@ -135,9 +138,73 @@ npm run build
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+CRON_SECRET=
 ```
 
 7. Deploy.
+
+## Supabase Heartbeat / Prevent Project Pause
+
+Fitur heartbeat melakukan satu RPC ringan setiap tiga hari. RPC menyimpan satu record aktivitas dan otomatis menghapus record yang lebih lama dari 30 hari. Endpoint tidak menggunakan query dari browser dan tidak membuka service role key ke frontend.
+
+### Setup Database
+
+1. Buka Supabase Dashboard.
+2. Masuk ke SQL Editor.
+3. Jalankan seluruh isi file:
+
+```text
+supabase/project-heartbeat.sql
+```
+
+Table `public.project_heartbeat` menggunakan RLS tanpa policy untuk `anon` atau `authenticated`. Hanya endpoint server dengan service role yang dapat menjalankan function `public.refresh_project_activity()`.
+
+### Setup Vercel
+
+Tambahkan environment variables berikut di Vercel Project Settings:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+CRON_SECRET=your-random-secret-at-least-16-characters
+```
+
+Simpan `SUPABASE_SERVICE_ROLE_KEY` dan `CRON_SECRET` sebagai secret server-side. Setelah mengubah environment variables atau `vercel.json`, lakukan redeploy. Vercel membaca jadwal berikut dari `vercel.json`:
+
+```text
+0 3 */3 * *
+```
+
+Jadwal tersebut menjalankan `/api/heartbeat` setiap tiga hari pada sekitar pukul 03:00 UTC. Pada Vercel Hobby, waktu eksekusi dapat memiliki toleransi hingga sekitar satu jam.
+
+### Test Endpoint
+
+Test lokal dengan PowerShell:
+
+```powershell
+$headers = @{ Authorization = "Bearer $env:CRON_SECRET" }
+Invoke-RestMethod -Uri "http://localhost:3000/api/heartbeat" -Headers $headers
+```
+
+Test deployment:
+
+```powershell
+$headers = @{ Authorization = "Bearer YOUR_CRON_SECRET" }
+Invoke-RestMethod -Uri "https://your-domain.vercel.app/api/heartbeat" -Headers $headers
+```
+
+Response sukses:
+
+```json
+{
+  "ok": true,
+  "message": "Supabase refreshed"
+}
+```
+
+Jika request tidak membawa `CRON_SECRET` yang benar, endpoint mengembalikan status `401` dan tidak menjalankan RPC.
+
+Fitur ini ditujukan untuk project development atau portfolio dengan aktivitas ringan. Heartbeat bukan pengganti backup, monitoring, atau paket Supabase production yang memiliki jaminan operasional lebih sesuai untuk aplikasi bisnis.
 
 ## Scripts
 
