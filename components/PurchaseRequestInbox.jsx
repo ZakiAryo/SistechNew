@@ -23,6 +23,16 @@ function currency(value) {
   }).format(Number(value || 0));
 }
 
+function getPrItemSummary(row) {
+  const details = Array.isArray(row.purchase_request_items) ? row.purchase_request_items : [];
+
+  if (details.length) {
+    return details.map((item) => item.item_name || item.items?.name || item.items?.item_code).filter(Boolean).join(", ");
+  }
+
+  return row.items?.item_code || row.items?.name || "-";
+}
+
 export default function PurchaseRequestInbox() {
   const [rows, setRows] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -60,6 +70,7 @@ export default function PurchaseRequestInbox() {
       row.projects?.project_name,
       row.items?.item_code,
       row.items?.name,
+      getPrItemSummary(row),
       row.item_summary,
       row.status
     ]
@@ -80,7 +91,22 @@ export default function PurchaseRequestInbox() {
     const [{ data: prData }, { data: supplierData }, { data: userData }] = await Promise.all([
       supabase
         .from("purchase_requests")
-        .select("*, projects(project_code, project_name), items(item_code, name)")
+        .select(`
+          *,
+          projects(project_code, project_name),
+          items(item_code, name),
+          purchase_request_items(
+            id,
+            item_id,
+            item_name,
+            description,
+            quantity,
+            unit,
+            estimated_price,
+            cost_code_id,
+            items(item_code, name)
+          )
+        `)
         .in("status", ["pending", "processed", "approved"])
         .order("created_at", { ascending: false }),
       supabase.from("suppliers").select("id, supplier_code, name").order("name"),
@@ -143,6 +169,41 @@ export default function PurchaseRequestInbox() {
 
     if (poError) {
       setToast(poError.message);
+      setSubmitting(false);
+      return;
+    }
+
+    const prItems = Array.isArray(selectedPr.purchase_request_items) && selectedPr.purchase_request_items.length
+      ? selectedPr.purchase_request_items
+      : [
+          {
+            id: null,
+            item_id: selectedPr.item_id,
+            item_name: selectedPr.items?.name || selectedPr.item_summary || "Purchase item",
+            description: selectedPr.item_summary || "",
+            quantity: selectedPr.quantity || 1,
+            unit: selectedPr.unit,
+            estimated_price: selectedPr.estimated_unit_price || selectedPr.estimated_amount || 0,
+            cost_code_id: null
+          }
+        ];
+
+    const { error: poItemsError } = await supabase.from("purchase_order_items").insert(
+      prItems.map((item) => ({
+        purchase_order_id: poData.id,
+        purchase_request_item_id: item.id,
+        item_id: item.item_id || null,
+        cost_code_id: item.cost_code_id || null,
+        item_name: item.item_name || item.items?.name || "Purchase item",
+        description: item.description || "",
+        quantity: Number(item.quantity || 1),
+        unit: item.unit || null,
+        unit_price: Number(item.estimated_price || 0)
+      }))
+    );
+
+    if (poItemsError) {
+      setToast(poItemsError.message);
       setSubmitting(false);
       return;
     }
@@ -240,7 +301,7 @@ export default function PurchaseRequestInbox() {
                   <tr key={row.id}>
                     <td className="px-4 py-3 text-sm font-medium text-slate-800">{row.pr_number || "-"}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{row.projects?.project_code || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{row.items?.item_code || row.items?.name || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{getPrItemSummary(row)}</td>
                     <td className="max-w-md px-4 py-3 text-sm text-slate-600">{row.item_summary || "-"}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{currency(row.estimated_amount)}</td>
                     <td className="px-4 py-3 text-sm capitalize text-slate-600">{row.status}</td>

@@ -25,7 +25,7 @@ Marketing & Sales:
 Engineering & Project:
 
 - `purchase_requests`: PR berbasis project.
-- `purchase_request_items`: item PR detail.
+- `purchase_request_items`: detail multi item dalam satu PR. Setiap item menyimpan nama barang, quantity, unit, cost code, estimated price, dan item summary.
 
 Purchasing:
 
@@ -66,6 +66,9 @@ Engineering:
 
 - Dashboard Engineering.
 - Input Purchase Request berdasarkan project.
+- Purchase Request mendukung banyak item dalam satu nomor PR.
+- Item PR dapat dipilih dari master item atau diketik bebas jika belum tersedia di master.
+- Status PR tidak diinput oleh pembuat PR; status mengikuti workflow approval/proses Purchasing.
 - Report PR outstanding.
 - PR otomatis terlihat oleh Purchasing.
 
@@ -94,7 +97,7 @@ User:
 ## 3. Flow Antar Divisi
 
 1. Marketing & Sales membuat customer, project, budget, cost code allocation, dan contract.
-2. Engineering & Project melihat data project lalu membuat Purchase Request.
+2. Engineering & Project melihat data project lalu membuat Purchase Request. Satu Purchase Request dapat memiliki banyak item melalui `purchase_request_items`.
 3. Purchase Request masuk otomatis ke Purchasing melalui table `purchase_requests` dan notification target role `purchasing`.
 4. Purchasing memproses PR menjadi Purchase Order.
 5. Saat PO dibuat, Delivery Order awal ikut dibuat dan PO otomatis masuk report PO vs Payment.
@@ -216,10 +219,12 @@ Marketing output/report:
 Engineering input:
 
 - `purchase_requests`
+- `purchase_request_items`
 
 Engineering output/report:
 
 - PR Outstanding.
+- Purchase Request Report menampilkan semua item PR, item summary, project, dan cost code secara terpisah.
 
 Purchasing input:
 

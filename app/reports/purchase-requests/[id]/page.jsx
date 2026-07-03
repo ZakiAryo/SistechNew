@@ -41,7 +41,23 @@ async function loadPurchaseRequestReport(id) {
 
   const { data: record, error } = await supabase
     .from("purchase_requests")
-    .select("*, projects(project_code, project_name), items(item_code, name, unit)")
+    .select(`
+      *,
+      projects(project_code, project_name),
+      items(item_code, name, unit),
+      purchase_request_items(
+        id,
+        item_id,
+        item_name,
+        description,
+        quantity,
+        unit,
+        estimated_price,
+        cost_code_id,
+        items(item_code, name, unit),
+        cost_codes(code, name)
+      )
+    `)
     .eq("id", id)
     .maybeSingle();
 

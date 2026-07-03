@@ -400,11 +400,25 @@ function PurchaseRequestDocument({ record, relatedPo }) {
   const item = record?.items;
   const project = record?.projects;
   const supplier = relatedPo?.suppliers;
-  const quantity = Number(record?.quantity || 1);
-  const unit = record?.unit || item?.unit || "LOT";
-  const description = record?.item_summary || item?.name || "-";
-  const itemReference = [item?.item_code, item?.name].filter(Boolean).join(" - ");
-  const remarks = record?.notes || record?.priority || "-";
+  const detailItems = Array.isArray(record?.purchase_request_items) && record.purchase_request_items.length
+    ? record.purchase_request_items
+    : [
+        {
+          item_id: record?.item_id,
+          item_name: item?.name || record?.item_summary || "-",
+          description: record?.item_summary || "-",
+          quantity: record?.quantity || 1,
+          unit: record?.unit || item?.unit || "LOT",
+          estimated_price: record?.estimated_unit_price || 0,
+          items: item,
+          cost_codes: null
+        }
+      ];
+  const costCodeSummary = detailItems
+    .map((detail) => [detail.cost_codes?.code, detail.cost_codes?.name].filter(Boolean).join(" - "))
+    .filter(Boolean)
+    .filter((value, index, array) => array.indexOf(value) === index)
+    .join(", ");
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 text-black print:bg-white print:p-0">
@@ -515,21 +529,36 @@ function PurchaseRequestDocument({ record, relatedPo }) {
               <th className="w-[18mm] px-1 py-1 text-center">Quantity<br />Jumlah</th>
               <th className="w-[20mm] px-1 py-1 text-center">Unit<br />Satuan</th>
               <th className="px-1 py-1 text-center">Description<br />Penjelasan</th>
-              <th className="w-[42mm] px-1 py-1 text-center">Remarks<br />Keterangan</th>
+              <th className="w-[42mm] px-1 py-1 text-center">Item Summary</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="align-top">
-              <td className="px-1 py-2 text-center">1</td>
-              <td className="px-1 py-2 text-center">{formatNumber(quantity)}</td>
-              <td className="px-1 py-2 text-center">{unit}</td>
-              <td className="h-[122mm] px-2 py-2 leading-snug">
-                <p className="whitespace-pre-line">{description}</p>
-                {itemReference ? <p className="mt-1">{itemReference}</p> : null}
-                {record?.needed_date ? <p>Waktu dibutuhkan {formatShortDate(record.needed_date)}</p> : null}
-                {project?.project_name ? <p className="mt-2">Project : {project.project_name}</p> : null}
-              </td>
-              <td className="whitespace-pre-line px-2 py-2 leading-snug">{remarks}</td>
+            {detailItems.map((detail, index) => {
+              const detailItem = detail.items || {};
+              const itemDescription = [
+                detail.item_name || detailItem.name,
+                detailItem.item_code,
+                record?.needed_date ? `Waktu dibutuhkan ${formatShortDate(record.needed_date)}` : "",
+                project?.project_name ? `Project : ${project.project_name}` : "",
+                detail.cost_codes?.code ? `Cost Code : ${[detail.cost_codes.code, detail.cost_codes.name].filter(Boolean).join(" - ")}` : ""
+              ].filter(Boolean);
+
+              return (
+                <tr key={detail.id || index} className="align-top">
+                  <td className="px-1 py-2 text-center">{index + 1}</td>
+                  <td className="px-1 py-2 text-center">{formatNumber(detail.quantity || 1)}</td>
+                  <td className="px-1 py-2 text-center">{detail.unit || detailItem.unit || "LOT"}</td>
+                  <td className="h-[24mm] px-2 py-2 leading-snug">
+                    {itemDescription.map((line, lineIndex) => (
+                      <p key={`${detail.id || index}-${lineIndex}`} className="whitespace-pre-line">{line}</p>
+                    ))}
+                  </td>
+                  <td className="whitespace-pre-line px-2 py-2 leading-snug">{detail.description || "-"}</td>
+                </tr>
+              );
+            })}
+            <tr>
+              <td className="h-[76mm] px-1 py-2" colSpan={5} />
             </tr>
           </tbody>
         </table>
@@ -562,7 +591,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
 
         <section className="grid grid-cols-[50mm_1fr_78mm] border-x border-b border-black">
           <div className="border-r border-black px-2 py-2">
-            <p>Cost Code No. : {project?.project_code || "-"}</p>
+            <p>Cost Code No. : {costCodeSummary || "-"}</p>
           </div>
           <div className="border-r border-black px-2 py-2">
             <p className="font-semibold">Remarks</p>
