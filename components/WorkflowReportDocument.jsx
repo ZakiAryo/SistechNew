@@ -402,7 +402,8 @@ function PurchaseRequestDocument({ record, relatedPo }) {
   const supplier = relatedPo?.suppliers;
   const quantity = Number(record?.quantity || 1);
   const unit = record?.unit || item?.unit || "LOT";
-  const description = item?.name || record?.item_summary || "-";
+  const description = record?.item_summary || item?.name || "-";
+  const itemReference = [item?.item_code, item?.name].filter(Boolean).join(" - ");
   const remarks = record?.notes || record?.priority || "-";
 
   return (
@@ -523,12 +524,12 @@ function PurchaseRequestDocument({ record, relatedPo }) {
               <td className="px-1 py-2 text-center">{formatNumber(quantity)}</td>
               <td className="px-1 py-2 text-center">{unit}</td>
               <td className="h-[122mm] px-2 py-2 leading-snug">
-                <p>{description}</p>
-                {item?.item_code ? <p>{item.item_code}</p> : null}
+                <p className="whitespace-pre-line">{description}</p>
+                {itemReference ? <p className="mt-1">{itemReference}</p> : null}
                 {record?.needed_date ? <p>Waktu dibutuhkan {formatShortDate(record.needed_date)}</p> : null}
                 {project?.project_name ? <p className="mt-2">Project : {project.project_name}</p> : null}
               </td>
-              <td className="px-2 py-2 leading-snug">{remarks}</td>
+              <td className="whitespace-pre-line px-2 py-2 leading-snug">{remarks}</td>
             </tr>
           </tbody>
         </table>
@@ -566,7 +567,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           <div className="border-r border-black px-2 py-2">
             <p className="font-semibold">Remarks</p>
             <p>Keterangan</p>
-            <p className="mt-1">{record?.notes || "-"}</p>
+            <p className="mt-1 whitespace-pre-line">{record?.notes || "-"}</p>
           </div>
           <div />
         </section>
