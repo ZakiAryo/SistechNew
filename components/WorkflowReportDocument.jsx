@@ -471,6 +471,15 @@ function PurchaseRequestDocument({ record, relatedPo }) {
         .pr-doc td {
           border: 1px solid #000;
         }
+
+        .pr-items-table tbody td {
+          border-top: 0;
+          border-bottom: 0;
+        }
+
+        .pr-items-table tbody tr:last-child td {
+          border-bottom: 1px solid #000;
+        }
       `}</style>
 
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] justify-between gap-2">
@@ -522,7 +531,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           </div>
         </header>
 
-        <table className="mt-2 w-full text-[8px]">
+        <table className="pr-items-table mt-2 w-full text-[8px]">
           <thead>
             <tr>
               <th className="w-[15mm] px-1 py-1 text-center">Item<br />No.</th>
