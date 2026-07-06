@@ -567,7 +567,11 @@ function PurchaseRequestDocument({ record, relatedPo }) {
               );
             })}
             <tr>
-              <td className="h-[76mm] px-1 py-2" colSpan={5} />
+              <td className="h-[76mm] px-1 py-2" />
+              <td className="h-[76mm] px-1 py-2" />
+              <td className="h-[76mm] px-1 py-2" />
+              <td className="h-[76mm] px-1 py-2" />
+              <td className="h-[76mm] px-1 py-2" />
             </tr>
           </tbody>
         </table>
