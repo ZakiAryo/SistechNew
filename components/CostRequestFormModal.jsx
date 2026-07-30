@@ -288,6 +288,16 @@ export default function CostRequestFormModal({
           </div>
         )}
 
+
+          <FormInput
+            label="Nomor PB"
+            name="pb_number"
+            value={formData.pb_number}
+            onChange={(e) => setFormData((prev) => ({ ...prev, pb_number: e.target.value }))}
+            placeholder="Kosongkan untuk generate otomatis (contoh: PB-2607-000333)"
+            helperText="Isi manual jika perlu, atau kosongkan untuk auto-generate"
+          />
+
           <FormInput
             label="Tanggal"
             type="date"
