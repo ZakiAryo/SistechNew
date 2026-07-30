@@ -42,6 +42,7 @@ export default function CostRequestFormModal({
   open,
   onClose,
   onSubmit,
+  onSubmitForApproval,
   initialData = null,
   projects = [],
   costCodes = [],
@@ -180,29 +181,20 @@ export default function CostRequestFormModal({
     return sum + qty * price;
   }, 0);
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    setValidationError("");
+  const currentStatus = formData.status || "draft";
+  const isEditable = !initialData || ["draft", "rejected"].includes(currentStatus);
+  const canSubmitForApproval =
+    Boolean(initialData?.id) &&
+    ["draft", "rejected"].includes(currentStatus) &&
+    Boolean(onSubmitForApproval);
 
-    if (!formData.project_name.trim()) {
-      setValidationError("Nama Proyek tidak boleh kosong.");
-      return;
-    }
-
-    if (!formData.requested_by_name.trim()) {
-      setValidationError("Diminta Oleh tidak boleh kosong.");
-      return;
-    }
-
+  function buildPayload() {
     const validItems = items.filter((item) => item.description.trim() || item.cost_code.trim());
-    if (validItems.length === 0) {
-      setValidationError("Minimal satu detail item biaya harus diisi.");
-      return;
-    }
 
-    onSubmit({
+    return {
       header: {
         ...formData,
+        status: "draft",
         total_amount: grandTotal
       },
       items: validItems.map((item) => ({
@@ -215,7 +207,49 @@ export default function CostRequestFormModal({
         unit_price: Number(item.unit_price) || 0,
         total_amount: (Number(item.quantity) || 1) * (Number(item.unit_price) || 0)
       }))
-    });
+    };
+  }
+
+  function validateForm() {
+    if (!formData.project_name.trim()) {
+      setValidationError("Nama Proyek tidak boleh kosong.");
+      return false;
+    }
+
+    if (!formData.requested_by_name.trim()) {
+      setValidationError("Diminta Oleh tidak boleh kosong.");
+      return false;
+    }
+
+    const validItems = items.filter((item) => item.description.trim() || item.cost_code.trim());
+    if (validItems.length === 0) {
+      setValidationError("Minimal satu detail item biaya harus diisi.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setValidationError("");
+
+    if (!validateForm()) {
+      return;
+    }
+
+    onSubmit(buildPayload());
+  }
+
+  function handleSubmitForApproval(e) {
+    e.preventDefault();
+    setValidationError("");
+
+    if (!validateForm()) {
+      return;
+    }
+
+    onSubmitForApproval(buildPayload());
   }
 
   return (
@@ -232,6 +266,14 @@ export default function CostRequestFormModal({
           </div>
         ) : null}
 
+        {!isEditable ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            PB berstatus <strong>{currentStatus}</strong> tidak dapat diedit. Hanya PB draft atau rejected yang
+            dapat diubah.
+          </div>
+        ) : null}
+
+        <fieldset disabled={!isEditable || submitting} className="space-y-6 disabled:opacity-80">
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Nomor PB: readonly, auto-generated oleh database */}
           <div>
@@ -476,6 +518,7 @@ export default function CostRequestFormModal({
             </table>
           </div>
         </div>
+        </fieldset>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
           <button
@@ -484,15 +527,31 @@ export default function CostRequestFormModal({
             disabled={submitting}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            Batal
+            {isEditable ? "Batal" : "Tutup"}
           </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-md bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-          >
-            {submitting ? "Menyimpan..." : initialData ? "Simpan Perubahan" : "Buat Permohonan Biaya"}
-          </button>
+
+          {isEditable ? (
+            <>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-md bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                {submitting ? "Menyimpan..." : initialData ? "Simpan Draft" : "Buat Permohonan Biaya"}
+              </button>
+
+              {canSubmitForApproval ? (
+                <button
+                  type="button"
+                  onClick={handleSubmitForApproval}
+                  disabled={submitting}
+                  className="rounded-md bg-amber-600 px-5 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {submitting ? "Mengajukan..." : "Submit PB"}
+                </button>
+              ) : null}
+            </>
+          ) : null}
         </div>
       </form>
     </Modal>

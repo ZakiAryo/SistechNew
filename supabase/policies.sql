@@ -698,6 +698,31 @@ to authenticated
 using (public.current_user_has_menu_access(array['/finance/cost-requests']))
 with check (public.current_user_has_menu_access(array['/finance/cost-requests']));
 
+drop policy if exists "cost_requests_manager_read" on public.cost_requests;
+create policy "cost_requests_manager_read"
+on public.cost_requests
+for select
+to authenticated
+using (
+  public.current_user_is_manager()
+  and upper(trim(coalesce(department, ''))) = upper(trim(coalesce(public.current_user_manager_department(), '')))
+);
+
+drop policy if exists "cost_request_items_manager_read" on public.cost_request_items;
+create policy "cost_request_items_manager_read"
+on public.cost_request_items
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.cost_requests cr
+    where cr.id = cost_request_id
+      and public.current_user_is_manager()
+      and upper(trim(coalesce(cr.department, ''))) = upper(trim(coalesce(public.current_user_manager_department(), '')))
+  )
+);
+
 drop policy if exists "accounting_entries_finance_manage" on public.accounting_entries;
 create policy "accounting_entries_finance_manage"
 on public.accounting_entries

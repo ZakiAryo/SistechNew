@@ -12,12 +12,15 @@ import {
   FileText,
   FolderKanban,
   Printer,
+  Send,
   Trash2,
   User,
-  AlertCircle
+  AlertCircle,
+  XCircle
 } from "lucide-react";
 import AppLayout from "./AppLayout";
 import ConfirmDialog from "./ConfirmDialog";
+import CostRequestApprovalModal from "./CostRequestApprovalModal";
 import CostRequestFormModal from "./CostRequestFormModal";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
@@ -58,6 +61,28 @@ const statusBadges = {
   cancelled: "bg-slate-200 text-slate-600 border-slate-400"
 };
 
+function isCostRequestEditable(status) {
+  return ["draft", "rejected"].includes(status);
+}
+
+function canApproveCostRequest(profile, record) {
+  if (!record || record.status !== "submitted") {
+    return false;
+  }
+
+  if (profile?.role === "admin") {
+    return true;
+  }
+
+  if (profile?.is_manager && profile?.managed_department) {
+    return (
+      profile.managed_department.toUpperCase() === (record.department || "").toUpperCase()
+    );
+  }
+
+  return false;
+}
+
 export default function CostRequestDetailPage({ id }) {
   const router = useRouter();
   const [record, setRecord] = useState(null);
@@ -76,6 +101,9 @@ export default function CostRequestDetailPage({ id }) {
   const [deleting, setDeleting] = useState(false);
 
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+  const [approvalMode, setApprovalMode] = useState("approve");
+  const [approving, setApproving] = useState(false);
 
   const supabase = useMemo(() => {
     try {
@@ -142,51 +170,61 @@ export default function CostRequestDetailPage({ id }) {
     return canProfileAccessPath(profile, "/finance/cost-requests");
   }, [profile]);
 
+  const canApprove = useMemo(() => canApproveCostRequest(profile, record), [profile, record]);
+  const isEditable = useMemo(() => isCostRequestEditable(record?.status), [record?.status]);
+  const canSubmit = useMemo(
+    () => canManage && isEditable && record?.id,
+    [canManage, isEditable, record?.id]
+  );
+
+  async function persistRecord(formPayload) {
+    const { header, items } = formPayload;
+
+    const { error: headerErr } = await supabase
+      .from("cost_requests")
+      .update({
+        pb_number: header.pb_number || record.pb_number,
+        request_date: header.request_date,
+        project_id: header.project_id || null,
+        project_name: header.project_name,
+        project_code: header.project_code || null,
+        requested_by_name: header.requested_by_name,
+        position: header.position || null,
+        department: header.department,
+        description: header.description || null,
+        status: "draft",
+        total_amount: header.total_amount,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", record.id);
+
+    if (headerErr) throw headerErr;
+
+    await supabase.from("cost_request_items").delete().eq("cost_request_id", record.id);
+
+    if (items.length > 0) {
+      const itemRows = items.map((item) => ({
+        cost_request_id: record.id,
+        cost_code_id: item.cost_code_id || null,
+        cost_code: item.cost_code || "-",
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price: item.unit_price,
+        total_amount: item.total_amount
+      }));
+
+      const { error: itemsErr } = await supabase.from("cost_request_items").insert(itemRows);
+      if (itemsErr) throw itemsErr;
+    }
+  }
+
   async function handleUpdate(formPayload) {
     if (!supabase || !record) return;
 
     setSubmitting(true);
     try {
-      const { header, items } = formPayload;
-
-      const { error: headerErr } = await supabase
-        .from("cost_requests")
-        .update({
-          pb_number: header.pb_number || record.pb_number,
-          request_date: header.request_date,
-          project_id: header.project_id || null,
-          project_name: header.project_name,
-          project_code: header.project_code || null,
-          requested_by_name: header.requested_by_name,
-          position: header.position || null,
-          department: header.department,
-          description: header.description || null,
-          status: header.status,
-          total_amount: header.total_amount,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", record.id);
-
-      if (headerErr) throw headerErr;
-
-      // Delete existing items and insert new ones
-      await supabase.from("cost_request_items").delete().eq("cost_request_id", record.id);
-
-      if (items.length > 0) {
-        const itemRows = items.map((item) => ({
-          cost_request_id: record.id,
-          cost_code_id: item.cost_code_id || null,
-          cost_code: item.cost_code || "-",
-          description: item.description,
-          quantity: item.quantity,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          total_amount: item.total_amount
-        }));
-
-        const { error: itemsErr } = await supabase.from("cost_request_items").insert(itemRows);
-        if (itemsErr) throw itemsErr;
-      }
+      await persistRecord(formPayload);
 
       await writeAuditLog(supabase, {
         userId: currentUser?.id,
@@ -197,13 +235,118 @@ export default function CostRequestDetailPage({ id }) {
         metadata: { pb_number: record.pb_number }
       });
 
-      setToast({ type: "success", message: "Permohonan Biaya berhasil diperbarui." });
+      setToast({ type: "success", message: "Permohonan Biaya berhasil disimpan sebagai draft." });
       setEditModalOpen(false);
       await loadRecord();
     } catch (err) {
       setToast({ type: "error", message: err.message || "Gagal memperbarui Permohonan Biaya." });
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleSubmitForApproval(formPayload) {
+    if (!supabase || !record) return;
+
+    setSubmitting(true);
+    try {
+      await persistRecord(formPayload);
+
+      const { error: submitErr } = await supabase.rpc("submit_cost_request", { p_id: record.id });
+      if (submitErr) throw submitErr;
+
+      await writeAuditLog(supabase, {
+        userId: currentUser?.id,
+        action: "SUBMIT_COST_REQUEST",
+        module: "cost_requests",
+        tableName: "cost_requests",
+        recordId: record.id,
+        metadata: { pb_number: record.pb_number }
+      });
+
+      setToast({ type: "success", message: "Permohonan Biaya berhasil diajukan untuk persetujuan." });
+      setEditModalOpen(false);
+      await loadRecord();
+    } catch (err) {
+      setToast({ type: "error", message: err.message || "Gagal submit Permohonan Biaya." });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleQuickSubmit() {
+    if (!supabase || !record) return;
+
+    setSubmitting(true);
+    try {
+      const { error: submitErr } = await supabase.rpc("submit_cost_request", { p_id: record.id });
+      if (submitErr) throw submitErr;
+
+      await writeAuditLog(supabase, {
+        userId: currentUser?.id,
+        action: "SUBMIT_COST_REQUEST",
+        module: "cost_requests",
+        tableName: "cost_requests",
+        recordId: record.id,
+        metadata: { pb_number: record.pb_number }
+      });
+
+      setToast({ type: "success", message: "Permohonan Biaya berhasil diajukan untuk persetujuan." });
+      await loadRecord();
+    } catch (err) {
+      setToast({ type: "error", message: err.message || "Gagal submit Permohonan Biaya." });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleApprovalConfirm(notesOrReason) {
+    if (!supabase || !record) return;
+
+    setApproving(true);
+    try {
+      if (approvalMode === "approve") {
+        const { error } = await supabase.rpc("approve_cost_request", {
+          p_id: record.id,
+          p_notes: notesOrReason || null
+        });
+        if (error) throw error;
+
+        await writeAuditLog(supabase, {
+          userId: currentUser?.id,
+          action: "APPROVE_COST_REQUEST",
+          module: "cost_requests",
+          tableName: "cost_requests",
+          recordId: record.id,
+          metadata: { pb_number: record.pb_number, notes: notesOrReason || null }
+        });
+
+        setToast({ type: "success", message: "Permohonan Biaya berhasil disetujui." });
+      } else {
+        const { error } = await supabase.rpc("reject_cost_request", {
+          p_id: record.id,
+          p_reason: notesOrReason
+        });
+        if (error) throw error;
+
+        await writeAuditLog(supabase, {
+          userId: currentUser?.id,
+          action: "REJECT_COST_REQUEST",
+          module: "cost_requests",
+          tableName: "cost_requests",
+          recordId: record.id,
+          metadata: { pb_number: record.pb_number, reason: notesOrReason }
+        });
+
+        setToast({ type: "success", message: "Permohonan Biaya ditolak." });
+      }
+
+      setApprovalModalOpen(false);
+      await loadRecord();
+    } catch (err) {
+      setToast({ type: "error", message: err.message || "Gagal memproses persetujuan." });
+    } finally {
+      setApproving(false);
     }
   }
 
@@ -292,8 +435,18 @@ export default function CostRequestDetailPage({ id }) {
                     Print / PDF
                   </Link>
 
-                  {canManage ? (
+                  {canManage && isEditable ? (
                     <>
+                      <button
+                        type="button"
+                        onClick={handleQuickSubmit}
+                        disabled={submitting}
+                        className="inline-flex h-10 items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                      >
+                        <Send className="h-4 w-4" />
+                        Submit PB
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setEditModalOpen(true)}
@@ -367,6 +520,84 @@ export default function CostRequestDetailPage({ id }) {
                 <p className="mt-0.5 text-xs text-slate-500">{record.position} ({record.department})</p>
               </div>
             </div>
+
+            {/* Approval Action Panel */}
+            {canApprove ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-amber-900 border-b border-amber-200 pb-3 mb-4">
+                  Approval Action
+                </h3>
+                <p className="mb-4 text-sm text-amber-800">
+                  PB ini menunggu persetujuan. Anda dapat menyetujui atau menolak permohonan biaya ini.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApprovalMode("approve");
+                      setApprovalModalOpen(true);
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApprovalMode("reject");
+                      setApprovalModalOpen(true);
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-md bg-rose-600 px-4 text-sm font-medium text-white hover:bg-rose-700"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Approval Info */}
+            {record.status === "approved" ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-emerald-900 border-b border-emerald-200 pb-3 mb-4">
+                  Informasi Persetujuan
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  <div>
+                    <p className="text-xs text-emerald-700 uppercase tracking-wider">Disetujui Oleh</p>
+                    <p className="mt-1 font-semibold text-emerald-950">{record.approved_by_name || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-emerald-700 uppercase tracking-wider">Tanggal Approval</p>
+                    <p className="mt-1 font-semibold text-emerald-950">{formatDate(record.approved_at)}</p>
+                  </div>
+                  {record.approval_notes ? (
+                    <div className="sm:col-span-1">
+                      <p className="text-xs text-emerald-700 uppercase tracking-wider">Catatan</p>
+                      <p className="mt-1 font-medium text-emerald-900">{record.approval_notes}</p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {record.status === "rejected" ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-rose-900 border-b border-rose-200 pb-3 mb-4">
+                  Informasi Penolakan
+                </h3>
+                <p className="text-sm text-rose-800">
+                  <span className="font-semibold">Alasan: </span>
+                  {record.rejected_reason || "-"}
+                </p>
+                {canSubmit ? (
+                  <p className="mt-3 text-xs text-rose-700">
+                    PB ditolak dapat diedit dan diajukan ulang melalui tombol Submit PB.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Information Details Box */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -462,11 +693,23 @@ export default function CostRequestDetailPage({ id }) {
             open={editModalOpen}
             onClose={() => setEditModalOpen(false)}
             onSubmit={handleUpdate}
+            onSubmitForApproval={handleSubmitForApproval}
             initialData={record}
             projects={projects}
             costCodes={costCodes}
             currentUserProfile={profile}
             submitting={submitting}
+          />
+        ) : null}
+
+        {approvalModalOpen ? (
+          <CostRequestApprovalModal
+            open={approvalModalOpen}
+            mode={approvalMode}
+            pbNumber={record?.pb_number}
+            loading={approving}
+            onClose={() => setApprovalModalOpen(false)}
+            onConfirm={handleApprovalConfirm}
           />
         ) : null}
 

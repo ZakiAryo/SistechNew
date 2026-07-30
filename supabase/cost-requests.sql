@@ -178,3 +178,213 @@ for all
 to authenticated
 using (public.current_user_has_menu_access(array['/finance/cost-requests']))
 with check (public.current_user_has_menu_access(array['/finance/cost-requests']));
+
+-- ── Approval workflow columns ──────────────────────────────────────────────
+
+alter table public.profiles
+  add column if not exists is_manager boolean not null default false,
+  add column if not exists managed_department text;
+
+alter table public.cost_requests
+  add column if not exists approved_by uuid references public.profiles(id) on delete set null,
+  add column if not exists approved_at timestamptz,
+  add column if not exists approved_by_name text,
+  add column if not exists approval_notes text,
+  add column if not exists rejected_reason text;
+
+-- ── Manager helper functions ───────────────────────────────────────────────
+
+create or replace function public.current_user_is_manager()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select coalesce((
+    select is_manager from public.profiles where id = auth.uid()
+  ), false)
+$$;
+
+grant execute on function public.current_user_is_manager() to authenticated;
+
+create or replace function public.current_user_manager_department()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select managed_department from public.profiles where id = auth.uid() and is_manager = true
+$$;
+
+grant execute on function public.current_user_manager_department() to authenticated;
+
+-- ── Status transition RPCs (SECURITY DEFINER) ──────────────────────────────
+
+create or replace function public.submit_cost_request(p_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_record public.cost_requests%rowtype;
+begin
+  select * into v_record from public.cost_requests where id = p_id for update;
+
+  if not found then
+    raise exception 'Permohonan Biaya tidak ditemukan.';
+  end if;
+
+  if v_record.status not in ('draft', 'rejected') then
+    raise exception 'Hanya PB berstatus draft atau rejected yang dapat disubmit.';
+  end if;
+
+  if not (
+    public.current_user_has_role(array['admin', 'finance'])
+    or public.current_user_has_menu_access(array['/finance/cost-requests'])
+    or v_record.created_by = auth.uid()
+  ) then
+    raise exception 'Anda tidak memiliki izin untuk submit PB ini.';
+  end if;
+
+  update public.cost_requests
+  set
+    status = 'submitted',
+    rejected_reason = null,
+    approved_by = null,
+    approved_at = null,
+    approved_by_name = null,
+    approval_notes = null,
+    updated_by = auth.uid(),
+    updated_at = now()
+  where id = p_id;
+end;
+$$;
+
+grant execute on function public.submit_cost_request(uuid) to authenticated;
+
+create or replace function public.approve_cost_request(p_id uuid, p_notes text default null)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_record public.cost_requests%rowtype;
+  v_approver_name text;
+begin
+  select * into v_record from public.cost_requests where id = p_id for update;
+
+  if not found then
+    raise exception 'Permohonan Biaya tidak ditemukan.';
+  end if;
+
+  if v_record.status <> 'submitted' then
+    raise exception 'Hanya PB berstatus submitted yang dapat disetujui.';
+  end if;
+
+  if not (
+    public.current_user_has_role(array['admin'])
+    or (
+      public.current_user_is_manager()
+      and upper(trim(coalesce(v_record.department, ''))) = upper(trim(coalesce(public.current_user_manager_department(), '')))
+    )
+  ) then
+    raise exception 'Anda tidak memiliki izin untuk menyetujui PB ini.';
+  end if;
+
+  select full_name into v_approver_name from public.profiles where id = auth.uid();
+
+  update public.cost_requests
+  set
+    status = 'approved',
+    approved_by = auth.uid(),
+    approved_at = now(),
+    approved_by_name = coalesce(v_approver_name, 'Unknown'),
+    approval_notes = nullif(trim(p_notes), ''),
+    rejected_reason = null,
+    updated_by = auth.uid(),
+    updated_at = now()
+  where id = p_id;
+end;
+$$;
+
+grant execute on function public.approve_cost_request(uuid, text) to authenticated;
+
+create or replace function public.reject_cost_request(p_id uuid, p_reason text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_record public.cost_requests%rowtype;
+begin
+  if nullif(trim(p_reason), '') is null then
+    raise exception 'Alasan penolakan wajib diisi.';
+  end if;
+
+  select * into v_record from public.cost_requests where id = p_id for update;
+
+  if not found then
+    raise exception 'Permohonan Biaya tidak ditemukan.';
+  end if;
+
+  if v_record.status <> 'submitted' then
+    raise exception 'Hanya PB berstatus submitted yang dapat ditolak.';
+  end if;
+
+  if not (
+    public.current_user_has_role(array['admin'])
+    or (
+      public.current_user_is_manager()
+      and upper(trim(coalesce(v_record.department, ''))) = upper(trim(coalesce(public.current_user_manager_department(), '')))
+    )
+  ) then
+    raise exception 'Anda tidak memiliki izin untuk menolak PB ini.';
+  end if;
+
+  update public.cost_requests
+  set
+    status = 'rejected',
+    rejected_reason = trim(p_reason),
+    approved_by = null,
+    approved_at = null,
+    approved_by_name = null,
+    approval_notes = null,
+    updated_by = auth.uid(),
+    updated_at = now()
+  where id = p_id;
+end;
+$$;
+
+grant execute on function public.reject_cost_request(uuid, text) to authenticated;
+
+-- ── Manager read-only RLS (department-scoped SELECT) ───────────────────────
+
+drop policy if exists "cost_requests_manager_read" on public.cost_requests;
+create policy "cost_requests_manager_read"
+on public.cost_requests
+for select
+to authenticated
+using (
+  public.current_user_is_manager()
+  and upper(trim(coalesce(department, ''))) = upper(trim(coalesce(public.current_user_manager_department(), '')))
+);
+
+drop policy if exists "cost_request_items_manager_read" on public.cost_request_items;
+create policy "cost_request_items_manager_read"
+on public.cost_request_items
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.cost_requests cr
+    where cr.id = cost_request_id
+      and public.current_user_is_manager()
+      and upper(trim(coalesce(cr.department, ''))) = upper(trim(coalesce(public.current_user_manager_department(), '')))
+  )
+);

@@ -61,6 +61,14 @@ const statusBadges = {
   cancelled: "bg-slate-200 text-slate-600 border-slate-400"
 };
 
+function isCostRequestEditable(status) {
+  return ["draft", "rejected"].includes(status);
+}
+
+function isManagerOnly(profile) {
+  return Boolean(profile?.is_manager) && profile?.role !== "admin";
+}
+
 export default function CostRequestPage() {
   const router = useRouter();
   const [rows, setRows] = useState([]);
@@ -141,6 +149,8 @@ export default function CostRequestPage() {
     return canProfileAccessPath(profile, "/finance/cost-requests");
   }, [profile]);
 
+  const managerOnly = useMemo(() => isManagerOnly(profile), [profile]);
+
   // Unique departments for filter dropdown
   const departments = useMemo(() => {
     const set = new Set();
@@ -153,6 +163,14 @@ export default function CostRequestPage() {
   // Filtered rows
   const filteredRows = useMemo(() => {
     return rows.filter((r) => {
+      if (
+        managerOnly &&
+        profile?.managed_department &&
+        r.department?.toUpperCase() !== profile.managed_department.toUpperCase()
+      ) {
+        return false;
+      }
+
       const matchSearch =
         !searchTerm.trim() ||
         (r.pb_number || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -166,7 +184,7 @@ export default function CostRequestPage() {
 
       return matchSearch && matchStatus && matchDept;
     });
-  }, [rows, searchTerm, statusFilter, departmentFilter]);
+  }, [rows, searchTerm, statusFilter, departmentFilter, managerOnly, profile?.managed_department]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -199,7 +217,7 @@ export default function CostRequestPage() {
             position: header.position || null,
             department: header.department,
             description: header.description || null,
-            status: header.status,
+            status: "draft",
             total_amount: header.total_amount,
             updated_at: new Date().toISOString()
           })
