@@ -128,8 +128,8 @@ export default function CostRequestDetailPage({ id }) {
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
         setCurrentUser(data.user);
-        const p = await fetchProfileByUserId(supabase, data.user.id);
-        setProfile(p);
+        const { profile: userProfile } = await fetchProfileByUserId(supabase, data.user.id);
+        setProfile(userProfile || null);
       }
     }
     initAuth();
