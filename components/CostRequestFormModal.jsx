@@ -5,14 +5,20 @@ import { Plus, Trash2 } from "lucide-react";
 import FormInput from "./FormInput";
 import Modal from "./Modal";
 
-const statusOptions = [
-  { value: "draft", label: "Draft" },
-  { value: "submitted", label: "Submitted" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
-  { value: "paid", label: "Paid" },
-  { value: "cancelled", label: "Cancelled" }
-];
+// Auto-fill Jabatan & Departemen berdasarkan role pengguna
+const roleDefaults = {
+  admin: { position: "ADMINISTRATOR", department: "MANAGEMENT" },
+  finance: { position: "FINANCE STAFF", department: "FINANCE" },
+  engineering: { position: "ENGINEER", department: "ENGINEERING" },
+  purchasing: { position: "PURCHASING STAFF", department: "PURCHASING" },
+  marketing: { position: "MARKETING STAFF", department: "MARKETING" },
+  user: { position: "", department: "OPERATIONAL" }
+};
+
+function getDefaultsByRole(role) {
+  const key = typeof role === "string" ? role.trim().toLowerCase() : "user";
+  return roleDefaults[key] || roleDefaults["user"];
+}
 
 const emptyItem = {
   cost_code_id: "",
@@ -95,6 +101,7 @@ export default function CostRequestFormModal({
         setItems([{ ...emptyItem }]);
       }
     } else {
+      const roleDefaults = getDefaultsByRole(currentUserProfile?.role);
       setFormData({
         pb_number: "",
         request_date: new Date().toISOString().split("T")[0],
@@ -102,8 +109,8 @@ export default function CostRequestFormModal({
         project_name: "",
         project_code: "",
         requested_by_name: currentUserProfile?.full_name || "",
-        position: "",
-        department: "OPERATIONAL",
+        position: roleDefaults.position,
+        department: roleDefaults.department,
         description: "",
         status: "draft"
       });
@@ -225,15 +232,17 @@ export default function CostRequestFormModal({
           </div>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <FormInput
-            label="Nomor PB"
-            name="pb_number"
-            value={formData.pb_number}
-            onChange={(e) => setFormData((prev) => ({ ...prev, pb_number: e.target.value }))}
-            placeholder="Otomatis (contoh: 2607 - 00333)"
-            helpText="Biarkan kosong untuk penomoran otomatis"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Nomor PB: readonly, auto-generated oleh database */}
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+              Nomor PB
+            </label>
+            <div className="mt-1.5 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 italic">
+              {initialData?.pb_number || "Akan digenerate otomatis (contoh: 2607 - 00333)"}
+            </div>
+            <p className="mt-1 text-xs text-slate-400">Nomor PB dibuat otomatis oleh sistem</p>
+          </div>
 
           <FormInput
             label="Tanggal"
@@ -242,15 +251,6 @@ export default function CostRequestFormModal({
             value={formData.request_date}
             onChange={(e) => setFormData((prev) => ({ ...prev, request_date: e.target.value }))}
             required
-          />
-
-          <FormInput
-            label="Status"
-            type="select"
-            name="status"
-            value={formData.status}
-            onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
-            options={statusOptions}
           />
         </div>
 
@@ -309,6 +309,7 @@ export default function CostRequestFormModal({
             value={formData.position}
             onChange={(e) => setFormData((prev) => ({ ...prev, position: e.target.value }))}
             placeholder="e.g. COMMISSIONING"
+            helperText="Auto dari role, dapat diedit"
           />
 
           <FormInput
@@ -317,6 +318,7 @@ export default function CostRequestFormModal({
             value={formData.department}
             onChange={(e) => setFormData((prev) => ({ ...prev, department: e.target.value }))}
             placeholder="e.g. OPERATIONAL"
+            helperText="Auto dari role, dapat diedit"
             required
           />
         </div>

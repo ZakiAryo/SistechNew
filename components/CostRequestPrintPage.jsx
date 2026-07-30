@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Printer, Download } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import EnvitechLogo from "./EnvitechLogo";
 import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 
@@ -11,14 +11,26 @@ function formatDateID(dateStr) {
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "Long",
-      year: "numeric"
-    });
+    const day = String(d.getDate()).padStart(2, "0");
+    const months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
   } catch {
     return dateStr;
   }
+}
+
+function formatPbNumber(pbNum) {
+  if (!pbNum) return "-";
+  let clean = pbNum.replace(/^PB-?/i, "").trim();
+  if (/^\d{4}-\d+$/.test(clean)) {
+    clean = clean.replace("-", " - ");
+  }
+  return clean;
 }
 
 function formatNumberID(val) {
@@ -139,21 +151,22 @@ export default function CostRequestPrintPage({ id }) {
           <p className="py-8 text-center text-sm text-rose-700">{error}</p>
         ) : record ? (
           <div className="space-y-6 text-sm text-black">
-            {/* Header: Logo & Title */}
-            <div className="flex items-start justify-between">
-              <div>
+            {/* Header: Logo & Title (Title centered horizontally) */}
+            <div className="relative flex items-center justify-between pb-2">
+              <div className="w-56 flex-none">
                 <EnvitechLogo className="h-16 w-52 object-contain" priority />
               </div>
-              <div className="pt-2 text-right">
+              <div className="flex-1 text-center">
                 <h1 className="text-2xl font-bold uppercase tracking-wider text-black">
                   PERMOHONAN BIAYA
                 </h1>
               </div>
+              <div className="w-56 flex-none" />
             </div>
 
-            {/* Info Grid */}
-            <div className="grid grid-cols-[1fr_auto] gap-8 pt-2 text-[13px] leading-relaxed">
-              <table className="w-full text-left font-medium">
+            {/* Info Grid (Tight alignment for No. PB and Tanggal) */}
+            <div className="grid grid-cols-[1fr_auto] items-start gap-12 text-[13px] leading-snug">
+              <table className="w-full text-left font-medium border-collapse">
                 <tbody>
                   <tr>
                     <td className="w-32 font-bold uppercase tracking-wide py-0.5">NAMA PROYEK</td>
@@ -188,17 +201,17 @@ export default function CostRequestPrintPage({ id }) {
                 </tbody>
               </table>
 
-              <table className="text-left font-medium">
+              <table className="text-left font-medium border-collapse self-start">
                 <tbody>
                   <tr>
-                    <td className="font-bold tracking-wide py-0.5 pr-2 whitespace-nowrap">No. PB</td>
+                    <td className="font-bold tracking-wide py-0.5 pr-3 whitespace-nowrap">No. PB</td>
                     <td className="font-bold py-0.5 pr-2">:</td>
-                    <td className="py-0.5 font-bold whitespace-nowrap">{record.pb_number || "-"}</td>
+                    <td className="py-0.5 font-bold whitespace-nowrap">{formatPbNumber(record.pb_number)}</td>
                   </tr>
                   <tr>
-                    <td className="font-bold tracking-wide py-0.5 pr-2 whitespace-nowrap">Tanggal</td>
+                    <td className="font-bold tracking-wide py-0.5 pr-3 whitespace-nowrap">Tanggal</td>
                     <td className="font-bold py-0.5 pr-2">:</td>
-                    <td className="py-0.5 whitespace-nowrap">{formatDateID(record.request_date)}</td>
+                    <td className="py-0.5 font-bold whitespace-nowrap">{formatDateID(record.request_date)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -233,9 +246,9 @@ export default function CostRequestPrintPage({ id }) {
                             {item.description}
                           </td>
                           <td className="border border-black px-2 py-2 align-top text-center">
-                            <div className="flex justify-between px-2">
+                            <div className="flex justify-between px-3">
                               <span>{item.quantity}</span>
-                              <span className="text-slate-700">{item.unit || "lot"}</span>
+                              <span className="text-slate-900">{item.unit || "lot"}</span>
                             </div>
                           </td>
                           <td className="border border-black px-3 py-2 align-top text-right font-medium">

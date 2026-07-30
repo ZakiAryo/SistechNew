@@ -61,10 +61,10 @@ declare
 begin
   perform pg_advisory_xact_lock(hashtext('PB_' || period));
 
-  select max(substring(pb_number from ('^PB-' || period || '-([0-9]+)$'))::bigint)
+  select max(substring(pb_number from ('^' || period || '\s*-\s*([0-9]+)$'))::bigint)
   into max_existing_value
   from public.cost_requests
-  where pb_number like 'PB-' || period || '-%';
+  where pb_number like period || ' - %' or pb_number like period || '-%' or pb_number like 'PB-' || period || '-%';
 
   generated_value := nextval('public.pb_number_seq');
 
@@ -73,7 +73,7 @@ begin
     generated_value := nextval('public.pb_number_seq');
   end if;
 
-  return 'PB-' || period || '-' || lpad(generated_value::text, 6, '0');
+  return period || ' - ' || lpad(generated_value::text, 5, '0');
 end;
 $$;
 
