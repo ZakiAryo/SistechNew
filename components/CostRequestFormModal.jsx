@@ -275,9 +275,8 @@ export default function CostRequestFormModal({
 
         <fieldset disabled={!isEditable || submitting} className="space-y-6 disabled:opacity-80">
         <div className="grid gap-4 sm:grid-cols-2">
-
         {false && (
-          {/* Nomor PB: readonly, auto-generated oleh database */}
+        
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
               Nomor PB
@@ -288,15 +287,6 @@ export default function CostRequestFormModal({
             <p className="mt-1 text-xs text-slate-400">Nomor PB dibuat otomatis oleh sistem</p>
           </div>
         )}
-
-          <FormInput
-            label="Nomor PB"
-            name="pb_number"
-            value={formData.pb_number}
-            onChange={(e) => setFormData((prev) => ({ ...prev, pb_number: e.target.value }))}
-            placeholder="Kosongkan untuk generate otomatis (contoh: PB-2607-000333)"
-            helperText="Isi manual jika perlu, atau kosongkan untuk auto-generate"
-          />
 
           <FormInput
             label="Tanggal"
