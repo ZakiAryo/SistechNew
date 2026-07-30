@@ -295,7 +295,7 @@ export default function CostRequestPrintPage({ id }) {
                 </div>
 
                 <div>
-                  <p className="font-normal">Keuangan,</p>
+                  <p className="font-normal">Dicatat Oleh,</p>
                   <div className="h-20" />
                   <p className="font-semibold">Bag. Keuangan</p>
                 </div>
