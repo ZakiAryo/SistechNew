@@ -62,11 +62,15 @@ alter table public.account_receivables enable row level security;
 alter table public.cash_bank_transactions enable row level security;
 alter table public.accounting_entries enable row level security;
 alter table public.audit_logs enable row level security;
+alter table public.cost_requests enable row level security;
+alter table public.cost_request_items enable row level security;
 
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 grant select, insert, update, delete on public.items to authenticated;
+grant select, insert, update, delete on public.cost_requests to authenticated;
+grant select, insert, update, delete on public.cost_request_items to authenticated;
 
 grant usage on schema public to service_role;
 grant select, insert, update, delete on all tables in schema public to service_role;
@@ -661,6 +665,38 @@ for all
 to authenticated
 using (public.current_user_has_menu_access(array['/finance/cash-bank', '/finance/reconcile-bank']))
 with check (public.current_user_has_menu_access(array['/finance/cash-bank', '/finance/reconcile-bank']));
+
+drop policy if exists "cost_requests_finance_manage" on public.cost_requests;
+create policy "cost_requests_finance_manage"
+on public.cost_requests
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
+drop policy if exists "cost_requests_menu_access_manage" on public.cost_requests;
+create policy "cost_requests_menu_access_manage"
+on public.cost_requests
+for all
+to authenticated
+using (public.current_user_has_menu_access(array['/finance/cost-requests']))
+with check (public.current_user_has_menu_access(array['/finance/cost-requests']));
+
+drop policy if exists "cost_request_items_finance_manage" on public.cost_request_items;
+create policy "cost_request_items_finance_manage"
+on public.cost_request_items
+for all
+to authenticated
+using (public.current_user_has_role(array['admin', 'finance']))
+with check (public.current_user_has_role(array['admin', 'finance']));
+
+drop policy if exists "cost_request_items_menu_access_manage" on public.cost_request_items;
+create policy "cost_request_items_menu_access_manage"
+on public.cost_request_items
+for all
+to authenticated
+using (public.current_user_has_menu_access(array['/finance/cost-requests']))
+with check (public.current_user_has_menu_access(array['/finance/cost-requests']));
 
 drop policy if exists "accounting_entries_finance_manage" on public.accounting_entries;
 create policy "accounting_entries_finance_manage"
