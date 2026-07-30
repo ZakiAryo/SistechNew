@@ -19,7 +19,7 @@ function badgeClass(value) {
     return "bg-amber-50 text-amber-700 ring-amber-100";
   }
 
-  if (["inactive", "cancelled", "rejected", "overdue"].includes(status)) {g
+  if (["inactive", "cancelled", "rejected", "overdue"].includes(status)) {
     return "bg-rose-50 text-rose-700 ring-rose-100";
   }
 
@@ -63,8 +63,9 @@ function formatValue(value, column, locale, t) {
 }
 
 export default function DataTable({
-  columns,
+  columns = [],
   rows,
+  data,
   loading,
   error,
   emptyTitle = "No data found",
@@ -76,6 +77,7 @@ export default function DataTable({
   documentUrlKey
 }) {
   const { locale, t } = useLanguage();
+  const tableRows = Array.isArray(rows) ? rows : Array.isArray(data) ? data : [];
   const showActions = Boolean(canManage || detailBasePath || documentUrlKey);
   const actionButtonCount = (detailBasePath ? 1 : 0) + (documentUrlKey ? 1 : 0) + (canManage ? 2 : 0);
   const actionColumnWidth = showActions ? Math.max(96, actionButtonCount * 36 + 16) : 0;
@@ -112,7 +114,7 @@ export default function DataTable({
     );
   }
 
-  if (!rows.length) {
+  if (!tableRows.length) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
         <p className="text-sm font-semibold text-slate-900">{emptyTitle}</p>
@@ -152,7 +154,7 @@ export default function DataTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
-            {rows.map((row) => (
+            {tableRows.map((row) => (
               <tr key={row.id} className="h-14 hover:bg-slate-50/80">
                 {columns.map((column) => (
                   <td
@@ -160,7 +162,7 @@ export default function DataTable({
                     className={`px-3 py-3 text-sm text-slate-700 ${column.className || ""}`}
                   >
                     <div className="min-w-0 truncate">
-                      {formatValue(getNestedValue(row, column.key), column, locale, t)}
+                      {column.render ? column.render(row) : formatValue(getNestedValue(row, column.key), column, locale, t)}
                     </div>
                   </td>
                 ))}

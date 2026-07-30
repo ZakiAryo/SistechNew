@@ -587,9 +587,10 @@ export default function CostRequestPage() {
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <DataTable
             columns={columns}
-            data={filteredRows}
+            rows={filteredRows}
             loading={loading}
-            emptyMessage="Belum ada data Permohonan Biaya."
+            emptyTitle="Belum Ada Data Permohonan Biaya"
+            emptyDescription="Klik tombol 'Tambah Permohonan Biaya' untuk membuat pengajuan baru."
           />
         </div>
 
