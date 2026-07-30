@@ -81,6 +81,7 @@ const iconByHref = {
   "/purchasing/delivery-orders": Truck,
   "/purchasing/po-vs-payment": CreditCard,
   "/finance": Banknote,
+  "/finance/cost-requests": Receipt,
   "/finance/account-payable": CreditCard,
   "/finance/account-receivable": FileText,
   "/finance/cash-bank": Banknote,
