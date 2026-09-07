@@ -33,6 +33,25 @@ function getPrItemSummary(row) {
   return row.items?.item_code || row.items?.name || "-";
 }
 
+function getPurchaseRequestItems(row) {
+  if (Array.isArray(row?.purchase_request_items) && row.purchase_request_items.length) {
+    return row.purchase_request_items;
+  }
+
+  return [
+    {
+      id: null,
+      item_id: row?.item_id || null,
+      item_name: row?.items?.name || row?.item_summary || "Purchase item",
+      description: row?.item_summary || "",
+      quantity: row?.quantity || 1,
+      unit: row?.unit || null,
+      estimated_price: row?.estimated_unit_price || row?.estimated_amount || 0,
+      cost_code_id: null
+    }
+  ];
+}
+
 export default function PurchaseRequestInbox() {
   const [rows, setRows] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -43,6 +62,7 @@ export default function PurchaseRequestInbox() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
   const [createdPoReportHref, setCreatedPoReportHref] = useState("");
+  const [poItems, setPoItems] = useState([]);
   const [formData, setFormData] = useState({
     po_number: "",
     supplier_id: "",
@@ -63,6 +83,11 @@ export default function PurchaseRequestInbox() {
     value: supplier.id,
     label: `${supplier.supplier_code || "-"} - ${supplier.name}`
   }));
+
+  const selectedPoItems = poItems.filter((item) => item.selected);
+  const selectedTotal = selectedPoItems.reduce((total, item) => {
+    return total + Number(item.quantity || 0) * Number(item.unit_price || 0);
+  }, 0);
 
   const filteredRows = rows.filter((row) => {
     const haystack = [
@@ -133,9 +158,16 @@ export default function PurchaseRequestInbox() {
       po_number: "",
       supplier_id: row.supplier_id || "",
       order_date: new Date().toISOString().slice(0, 10),
-      total_amount: row.estimated_amount || "",
+      total_amount: "",
       status: "waiting"
     });
+    setPoItems(
+      getPurchaseRequestItems(row).map((item) => ({
+        ...item,
+        selected: false,
+        unit_price: String(item.estimated_price || 0)
+      }))
+    );
   }
 
   function handleInputChange(event) {
@@ -143,11 +175,22 @@ export default function PurchaseRequestInbox() {
     setFormData((current) => ({ ...current, [name]: value }));
   }
 
+  function updatePoItem(index, changes) {
+    setPoItems((current) => current.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, ...changes } : item
+    )));
+  }
+
   async function handleCreatePo(event) {
     event.preventDefault();
 
     if (!supabase || !selectedPr || !formData.supplier_id) {
       setToast("Supplier is required.");
+      return;
+    }
+
+    if (!selectedPoItems.length) {
+      setToast("Select at least one item from the Purchase Request.");
       return;
     }
 
@@ -160,10 +203,10 @@ export default function PurchaseRequestInbox() {
         purchase_request_id: selectedPr.id,
         supplier_id: formData.supplier_id,
         project_id: selectedPr.project_id,
-        item_id: selectedPr.item_id || null,
+        item_id: selectedPoItems[0].item_id || null,
         status: formData.status,
         order_date: formData.order_date || null,
-        total_amount: Number(formData.total_amount || 0),
+        total_amount: selectedTotal,
         payment_status: "unpaid",
         delivery_status: "waiting",
         approved_by: formData.status === "approved" ? currentUser?.id : null,
@@ -178,23 +221,8 @@ export default function PurchaseRequestInbox() {
       return;
     }
 
-    const prItems = Array.isArray(selectedPr.purchase_request_items) && selectedPr.purchase_request_items.length
-      ? selectedPr.purchase_request_items
-      : [
-          {
-            id: null,
-            item_id: selectedPr.item_id,
-            item_name: selectedPr.items?.name || selectedPr.item_summary || "Purchase item",
-            description: selectedPr.item_summary || "",
-            quantity: selectedPr.quantity || 1,
-            unit: selectedPr.unit,
-            estimated_price: selectedPr.estimated_unit_price || selectedPr.estimated_amount || 0,
-            cost_code_id: null
-          }
-        ];
-
     const { error: poItemsError } = await supabase.from("purchase_order_items").insert(
-      prItems.map((item) => ({
+      selectedPoItems.map((item) => ({
         purchase_order_id: poData.id,
         purchase_request_item_id: item.id,
         item_id: item.item_id || null,
@@ -203,7 +231,7 @@ export default function PurchaseRequestInbox() {
         description: item.description || "",
         quantity: Number(item.quantity || 1),
         unit: item.unit || null,
-        unit_price: Number(item.estimated_price || 0)
+        unit_price: Number(item.unit_price || 0)
       }))
     );
 
@@ -233,7 +261,12 @@ export default function PurchaseRequestInbox() {
       module: "Purchasing",
       tableName: "purchase_orders",
       recordId: poData.id,
-      metadata: { purchase_request_id: selectedPr.id, ...formData }
+      metadata: {
+        purchase_request_id: selectedPr.id,
+        ...formData,
+        total_amount: selectedTotal,
+        item_count: selectedPoItems.length
+      }
     });
 
     setToast("Purchase Order created. Delivery Order and PO vs Payment data are now linked.");
@@ -379,8 +412,74 @@ export default function PurchaseRequestInbox() {
           />
           <FormInput label="Supplier" name="supplier_id" type="select" value={formData.supplier_id} onChange={handleInputChange} options={supplierOptions} required />
           <FormInput label="Order Date" name="order_date" type="date" value={formData.order_date} onChange={handleInputChange} />
-          <FormInput label="Total Amount" name="total_amount" type="number" value={formData.total_amount} onChange={handleInputChange} />
           <FormInput label="PO Status" name="status" type="select" value={formData.status} onChange={handleInputChange} options={poStatusOptions} required />
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total Amount</p>
+            <p className="mt-1 font-semibold text-slate-950">{currency(selectedTotal, selectedPr?.currency)}</p>
+          </div>
+
+          <section className="sm:col-span-2 overflow-hidden rounded-md border border-slate-200">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Items from Purchase Request</h3>
+                <p className="mt-1 text-xs text-slate-500">Select only the items to include in this purchase order, then enter the agreed unit price.</p>
+              </div>
+              <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">
+                {selectedPoItems.length} selected
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="w-12 px-3 py-2 text-center">Select</th>
+                    <th className="px-3 py-2">Item / Barang</th>
+                    <th className="w-20 px-3 py-2 text-right">Qty</th>
+                    <th className="w-20 px-3 py-2">Unit</th>
+                    <th className="w-36 px-3 py-2 text-right">Unit Price</th>
+                    <th className="w-36 px-3 py-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {poItems.map((item, index) => {
+                    const lineTotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
+
+                    return (
+                      <tr key={item.id || `${item.item_id || "manual"}-${index}`} className={item.selected ? "bg-cyan-50/40" : "bg-white"}>
+                        <td className="px-3 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={item.selected}
+                            onChange={(event) => updatePoItem(index, { selected: event.target.checked })}
+                            className="h-4 w-4 rounded border-slate-300 text-cyan-700 focus:ring-cyan-600"
+                            aria-label={`Select ${item.item_name || "item"}`}
+                          />
+                        </td>
+                        <td className="px-3 py-3 text-slate-800">
+                          <p className="font-medium">{item.item_name || item.items?.name || "-"}</p>
+                          {item.description ? <p className="mt-1 text-xs text-slate-500">{item.description}</p> : null}
+                        </td>
+                        <td className="px-3 py-3 text-right text-slate-700">{item.quantity || 0}</td>
+                        <td className="px-3 py-3 text-slate-700">{item.unit || "-"}</td>
+                        <td className="px-3 py-3">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.unit_price}
+                            onChange={(event) => updatePoItem(index, { unit_price: event.target.value })}
+                            disabled={!item.selected}
+                            className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                          />
+                        </td>
+                        <td className="px-3 py-3 text-right font-medium text-slate-800">{currency(lineTotal, selectedPr?.currency)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </form>
       </Modal>
     </AppLayout>
