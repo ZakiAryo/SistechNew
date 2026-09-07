@@ -23,11 +23,10 @@ export default function CostCodesPage() {
       fields={[
         {
           name: "code",
-          label: "Code",
-          placeholder: "Auto generated",
+          label: "Cost Code",
+          placeholder: "Enter code or leave blank to auto-generate",
           nullable: true,
-          readOnly: true,
-          helperText: "Generated automatically on save."
+          helperText: "Leave blank to use the automatic cost code."
         },
         { name: "name", label: "Name", placeholder: "Engineering Design", required: true },
         { name: "category", label: "Category", placeholder: "Engineering", nullable: true },

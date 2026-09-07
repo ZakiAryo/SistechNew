@@ -90,6 +90,7 @@ export default function PurchaseRequestPage() {
   const [projects, setProjects] = useState([]);
   const [items, setItems] = useState([]);
   const [costCodes, setCostCodes] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [profile, setProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -103,7 +104,9 @@ export default function PurchaseRequestPage() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [formData, setFormData] = useState({
+    pr_number: "",
     project_id: "",
+    supplier_id: "",
     request_date: "",
     needed_date: "",
     priority: "normal",
@@ -140,6 +143,11 @@ export default function PurchaseRequestPage() {
     label: [costCode.code, costCode.name].filter(Boolean).join(" - ")
   }));
 
+  const supplierOptions = suppliers.map((supplier) => ({
+    value: supplier.id,
+    label: [supplier.supplier_code, supplier.name].filter(Boolean).join(" - ")
+  }));
+
   const visibleRows = useMemo(() => {
     const mappedRows = rows.map(mapRow);
 
@@ -154,6 +162,8 @@ export default function PurchaseRequestPage() {
         row.pr_number,
         row.projects?.project_code,
         row.projects?.project_name,
+        row.suppliers?.supplier_code,
+        row.suppliers?.name,
         row.item_display,
         row.item_summary_display,
         row.priority,
@@ -199,15 +209,17 @@ export default function PurchaseRequestPage() {
       return;
     }
 
-    const [projectResult, itemResult, costCodeResult] = await Promise.all([
+    const [projectResult, itemResult, costCodeResult, supplierResult] = await Promise.all([
       supabase.from("projects").select("id, project_code, project_name").order("project_name"),
       supabase.from("items").select("id, item_code, name, unit").order("name"),
-      supabase.from("cost_codes").select("id, code, name").order("code")
+      supabase.from("cost_codes").select("id, code, name").order("code"),
+      supabase.from("suppliers").select("id, supplier_code, name").order("name")
     ]);
 
     setProjects(projectResult.data || []);
     setItems(itemResult.data || []);
     setCostCodes(costCodeResult.data || []);
+    setSuppliers(supplierResult.data || []);
   }, [supabase]);
 
   const loadRows = useCallback(async () => {
@@ -225,6 +237,7 @@ export default function PurchaseRequestPage() {
       .select(`
         *,
         projects(project_code, project_name),
+        suppliers(supplier_code, name),
         items(item_code, name, unit),
         purchase_request_items(
           id,
@@ -268,7 +281,9 @@ export default function PurchaseRequestPage() {
 
   function resetForm() {
     setFormData({
+      pr_number: "",
       project_id: "",
+      supplier_id: "",
       request_date: new Date().toISOString().slice(0, 10),
       needed_date: "",
       priority: "normal",
@@ -319,7 +334,9 @@ export default function PurchaseRequestPage() {
 
     setEditingRecord(record);
     setFormData({
+      pr_number: record.pr_number || "",
       project_id: record.project_id || "",
+      supplier_id: record.supplier_id || "",
       request_date: record.request_date || "",
       needed_date: record.needed_date || "",
       priority: record.priority || "normal",
@@ -386,9 +403,6 @@ export default function PurchaseRequestPage() {
         errors[`item_${index}`] = "Item / Barang is required.";
       }
 
-      if (!String(item.item_summary || "").trim()) {
-        errors[`summary_${index}`] = "Item Summary is required.";
-      }
     });
 
     setFormErrors(errors);
@@ -421,7 +435,9 @@ export default function PurchaseRequestPage() {
       .join("\n");
 
     return {
+      pr_number: String(formData.pr_number || "").trim() || null,
       project_id: formData.project_id || null,
+      supplier_id: formData.supplier_id || null,
       request_date: formData.request_date || null,
       needed_date: formData.needed_date || null,
       priority: formData.priority || "normal",
@@ -634,6 +650,14 @@ export default function PurchaseRequestPage() {
         <form id="purchase-request-form" onSubmit={handleSubmit} className="space-y-5">
           <section className="grid gap-4 sm:grid-cols-2">
             <FormInput
+              label="PR Number"
+              name="pr_number"
+              value={formData.pr_number}
+              onChange={handleHeaderChange}
+              placeholder="Manual number or leave blank to auto-generate"
+              helperText="Leave blank to use the automatic PR number."
+            />
+            <FormInput
               label="Project"
               name="project_id"
               type="select"
@@ -642,6 +666,15 @@ export default function PurchaseRequestPage() {
               options={projectOptions}
               required
               error={formErrors.project_id}
+            />
+            <FormInput
+              label="Supplier"
+              name="supplier_id"
+              type="select"
+              value={formData.supplier_id}
+              onChange={handleHeaderChange}
+              options={supplierOptions}
+              placeholder="Select supplier from master data"
             />
             <FormInput
               label="Priority"
@@ -733,7 +766,6 @@ export default function PurchaseRequestPage() {
                       value={item.item_summary}
                       onChange={(event) => updateRequestItem(index, { item_summary: event.target.value })}
                       rows={3}
-                      required
                       error={formErrors[`summary_${index}`]}
                     />
                   </div>
@@ -801,4 +833,3 @@ export default function PurchaseRequestPage() {
     </AppLayout>
   );
 }
-

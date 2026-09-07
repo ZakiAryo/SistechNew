@@ -44,6 +44,7 @@ export default function PurchaseRequestInbox() {
   const [toast, setToast] = useState("");
   const [createdPoReportHref, setCreatedPoReportHref] = useState("");
   const [formData, setFormData] = useState({
+    po_number: "",
     supplier_id: "",
     order_date: "",
     total_amount: "",
@@ -94,6 +95,7 @@ export default function PurchaseRequestInbox() {
         .select(`
           *,
           projects(project_code, project_name),
+          suppliers(supplier_code, name),
           items(item_code, name),
           purchase_request_items(
             id,
@@ -127,7 +129,8 @@ export default function PurchaseRequestInbox() {
     setCreatedPoReportHref("");
     setSelectedPr(row);
     setFormData({
-      supplier_id: "",
+      po_number: "",
+      supplier_id: row.supplier_id || "",
       order_date: new Date().toISOString().slice(0, 10),
       total_amount: row.estimated_amount || "",
       status: "waiting"
@@ -152,6 +155,7 @@ export default function PurchaseRequestInbox() {
     const { data: poData, error: poError } = await supabase
       .from("purchase_orders")
       .insert({
+        po_number: String(formData.po_number || "").trim() || null,
         purchase_request_id: selectedPr.id,
         supplier_id: formData.supplier_id,
         project_id: selectedPr.project_id,
@@ -364,6 +368,14 @@ export default function PurchaseRequestInbox() {
         }
       >
         <form id="create-po-form" onSubmit={handleCreatePo} className="grid gap-4 sm:grid-cols-2">
+          <FormInput
+            label="PO Number"
+            name="po_number"
+            value={formData.po_number}
+            onChange={handleInputChange}
+            placeholder="Manual number or leave blank to auto-generate"
+            helperText="Leave blank to use the automatic PO number."
+          />
           <FormInput label="Supplier" name="supplier_id" type="select" value={formData.supplier_id} onChange={handleInputChange} options={supplierOptions} required />
           <FormInput label="Order Date" name="order_date" type="date" value={formData.order_date} onChange={handleInputChange} />
           <FormInput label="Total Amount" name="total_amount" type="number" value={formData.total_amount} onChange={handleInputChange} />

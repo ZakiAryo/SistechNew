@@ -82,6 +82,7 @@ create table if not exists public.purchase_requests (
   id uuid primary key default gen_random_uuid(),
   pr_number text unique,
   project_id uuid references public.projects(id) on delete set null,
+  supplier_id uuid references public.suppliers(id) on delete set null,
   requested_by uuid references public.profiles(id) on delete set null,
   status text default 'draft',
   request_date date default current_date,
@@ -156,6 +157,7 @@ alter table public.projects
 
 alter table public.purchase_requests
   add column if not exists needed_date date,
+  add column if not exists supplier_id uuid references public.suppliers(id) on delete set null,
   add column if not exists priority text default 'normal',
   add column if not exists item_summary text,
   add column if not exists item_id uuid references public.items(id) on delete set null,
@@ -472,6 +474,7 @@ create index if not exists items_name_idx on public.items using btree (name);
 create index if not exists projects_customer_id_idx on public.projects using btree (customer_id);
 create index if not exists purchase_requests_item_id_idx on public.purchase_requests using btree (item_id);
 create index if not exists purchase_requests_project_id_idx on public.purchase_requests using btree (project_id);
+create index if not exists purchase_requests_supplier_id_idx on public.purchase_requests using btree (supplier_id);
 create index if not exists purchase_requests_status_idx on public.purchase_requests using btree (status);
 create index if not exists purchase_orders_project_id_idx on public.purchase_orders using btree (project_id);
 create index if not exists purchase_orders_item_id_idx on public.purchase_orders using btree (item_id);

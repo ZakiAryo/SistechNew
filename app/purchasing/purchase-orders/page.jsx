@@ -29,6 +29,13 @@ export default function PurchasingPurchaseOrdersPage() {
       ]}
       fields={[
         {
+          name: "po_number",
+          label: "PO Number",
+          placeholder: "Manual number or leave blank to auto-generate",
+          nullable: true,
+          helperText: "Leave blank to use the automatic PO number."
+        },
+        {
           name: "purchase_request_id",
           label: "Purchase Request",
           type: "select",
