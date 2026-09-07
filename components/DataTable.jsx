@@ -26,7 +26,7 @@ function badgeClass(value) {
   return "bg-slate-100 text-slate-700 ring-slate-200";
 }
 
-function formatValue(value, column, locale, t) {
+function formatValue(value, column, locale, t, row) {
   if (value === null || value === undefined || value === "") {
     return <span className="text-slate-400">-</span>;
   }
@@ -42,7 +42,7 @@ function formatValue(value, column, locale, t) {
   if (column.format === "currency") {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
-      currency: "IDR",
+      currency: column.currencyKey ? getNestedValue(row, column.currencyKey) || "IDR" : "IDR",
       maximumFractionDigits: 0
     }).format(Number(value || 0));
   }
@@ -162,7 +162,7 @@ export default function DataTable({
                     className={`px-3 py-3 text-sm text-slate-700 ${column.className || ""}`}
                   >
                     <div className="min-w-0 truncate">
-                      {column.render ? column.render(row) : formatValue(getNestedValue(row, column.key), column, locale, t)}
+                      {column.render ? column.render(row) : formatValue(getNestedValue(row, column.key), column, locale, t, row)}
                     </div>
                   </td>
                 ))}

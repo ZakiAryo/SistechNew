@@ -637,7 +637,7 @@ export default function PurchaseRequestPage() {
           { key: "item_count", label: "Items" },
           { key: "item_display", label: "Item / Barang" },
           { key: "item_summary_display", label: "Item Summary" },
-          { key: "estimated_amount", label: "Est. Amount", format: "currency" },
+          { key: "estimated_amount", label: "Est. Amount", format: "currency", currencyKey: "currency" },
           { key: "priority", label: "Priority", format: "badge" },
           { key: "status", label: "Status", format: "badge" }
         ]}

@@ -16,7 +16,7 @@ export default function EngineeringPrOutstandingPage() {
         { key: "projects.project_code", label: "Project" },
         { key: "projects.project_name", label: "Project Name" },
         { key: "item_summary", label: "Item Summary" },
-        { key: "estimated_amount", label: "Amount", format: "currency" },
+        { key: "estimated_amount", label: "Amount", format: "currency", currencyKey: "currency" },
         { key: "status", label: "Status", format: "badge" }
       ]}
     />
