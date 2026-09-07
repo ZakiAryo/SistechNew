@@ -415,7 +415,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
         }
       ];
   const costCodeSummary = detailItems
-    .map((detail) => [detail.cost_codes?.code, detail.cost_codes?.name].filter(Boolean).join(" - "))
+    .map((detail) => detail.cost_code || [detail.cost_codes?.code, detail.cost_codes?.name].filter(Boolean).join(" - "))
     .filter(Boolean)
     .filter((value, index, array) => array.indexOf(value) === index)
     .join(", ");
@@ -548,8 +548,9 @@ function PurchaseRequestDocument({ record, relatedPo }) {
                 detail.item_name || detailItem.name,
                 detailItem.item_code,
                 record?.needed_date ? `Waktu dibutuhkan ${formatShortDate(record.needed_date)}` : "",
-                project?.project_name ? `Project : ${project.project_name}` : "",
-                detail.cost_codes?.code ? `Cost Code : ${[detail.cost_codes.code, detail.cost_codes.name].filter(Boolean).join(" - ")}` : ""
+                detail.cost_code || detail.cost_codes?.code
+                  ? `Cost Code : ${detail.cost_code || [detail.cost_codes?.code, detail.cost_codes?.name].filter(Boolean).join(" - ")}`
+                  : ""
               ].filter(Boolean);
 
               return (

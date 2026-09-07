@@ -21,20 +21,27 @@ const priorityOptions = [
   { value: "urgent", label: "Urgent" }
 ];
 
+const currencyOptions = [
+  { value: "IDR", label: "IDR" },
+  { value: "USD", label: "USD" },
+  { value: "EUR", label: "EUR (Euro)" }
+];
+
 const emptyItem = {
   item_id: "",
   item_name: "",
   cost_code_id: "",
+  cost_code: "",
   quantity: "1",
   unit: "",
   estimated_price: "0",
   item_summary: ""
 };
 
-function currency(value) {
+function currency(value, currencyCode = "IDR") {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
-    currency: "IDR",
+    currency: currencyCode,
     maximumFractionDigits: 0
   }).format(Number(value || 0));
 }
@@ -107,6 +114,7 @@ export default function PurchaseRequestPage() {
     pr_number: "",
     project_id: "",
     supplier_id: "",
+    currency: "IDR",
     request_date: "",
     needed_date: "",
     priority: "normal",
@@ -140,7 +148,8 @@ export default function PurchaseRequestPage() {
 
   const costCodeOptions = costCodes.map((costCode) => ({
     value: costCode.id,
-    label: [costCode.code, costCode.name].filter(Boolean).join(" - ")
+    label: [costCode.code, costCode.name].filter(Boolean).join(" - "),
+    costCode
   }));
 
   const supplierOptions = suppliers.map((supplier) => ({
@@ -248,6 +257,7 @@ export default function PurchaseRequestPage() {
           unit,
           estimated_price,
           cost_code_id,
+          cost_code,
           items(item_code, name, unit),
           cost_codes(code, name)
         )
@@ -284,6 +294,7 @@ export default function PurchaseRequestPage() {
       pr_number: "",
       project_id: "",
       supplier_id: "",
+      currency: "IDR",
       request_date: new Date().toISOString().slice(0, 10),
       needed_date: "",
       priority: "normal",
@@ -315,6 +326,7 @@ export default function PurchaseRequestPage() {
           item_id: item.item_id || "",
           item_name: item.item_name || item.items?.name || "",
           cost_code_id: item.cost_code_id || "",
+          cost_code: item.cost_code || item.cost_codes?.code || "",
           quantity: item.quantity ?? "1",
           unit: item.unit || item.items?.unit || "",
           estimated_price: item.estimated_price ?? "0",
@@ -325,6 +337,7 @@ export default function PurchaseRequestPage() {
             item_id: record.item_id || "",
             item_name: record.items?.name || record.item_summary || "",
             cost_code_id: "",
+            cost_code: "",
             quantity: record.quantity ?? "1",
             unit: record.unit || record.items?.unit || "",
             estimated_price: record.estimated_unit_price ?? "0",
@@ -337,6 +350,7 @@ export default function PurchaseRequestPage() {
       pr_number: record.pr_number || "",
       project_id: record.project_id || "",
       supplier_id: record.supplier_id || "",
+      currency: record.currency || "IDR",
       request_date: record.request_date || "",
       needed_date: record.needed_date || "",
       priority: record.priority || "normal",
@@ -374,6 +388,22 @@ export default function PurchaseRequestPage() {
       item_name: matched ? matched.item.name : value,
       item_id: matched ? matched.value : "",
       unit: matched?.item.unit || requestItems[index]?.unit || ""
+    });
+  }
+
+  function handleCostCodeChange(index, value) {
+    const normalized = value.trim().toLowerCase();
+    const matched = costCodeOptions.find((option) => {
+      return (
+        option.label.toLowerCase() === normalized ||
+        option.costCode.code?.toLowerCase() === normalized ||
+        option.costCode.name?.toLowerCase() === normalized
+      );
+    });
+
+    updateRequestItem(index, {
+      cost_code: matched ? matched.costCode.code : value,
+      cost_code_id: matched ? matched.value : ""
     });
   }
 
@@ -418,6 +448,7 @@ export default function PurchaseRequestPage() {
         purchase_request_id: purchaseRequestId,
         item_id: item.item_id || null,
         cost_code_id: item.cost_code_id || null,
+        cost_code: String(item.cost_code || "").trim() || null,
         item_name: String(item.item_name || "").trim(),
         description: String(item.item_summary || "").trim(),
         quantity,
@@ -438,6 +469,7 @@ export default function PurchaseRequestPage() {
       pr_number: String(formData.pr_number || "").trim() || null,
       project_id: formData.project_id || null,
       supplier_id: formData.supplier_id || null,
+      currency: formData.currency || "IDR",
       request_date: formData.request_date || null,
       needed_date: formData.needed_date || null,
       priority: formData.priority || "normal",
@@ -677,6 +709,15 @@ export default function PurchaseRequestPage() {
               placeholder="Select supplier from master data"
             />
             <FormInput
+              label="Currency"
+              name="currency"
+              type="select"
+              value={formData.currency}
+              onChange={handleHeaderChange}
+              options={currencyOptions}
+              required
+            />
+            <FormInput
               label="Priority"
               name="priority"
               type="select"
@@ -711,6 +752,12 @@ export default function PurchaseRequestPage() {
               ))}
             </datalist>
 
+            <datalist id="purchase-request-cost-code-options">
+              {costCodeOptions.map((option) => (
+                <option key={option.value} value={option.label} />
+              ))}
+            </datalist>
+
             <div className="divide-y divide-slate-100">
               {requestItems.map((item, index) => (
                 <div key={index} className="grid gap-4 px-4 py-4 sm:grid-cols-2">
@@ -729,14 +776,17 @@ export default function PurchaseRequestPage() {
                     {formErrors[`item_${index}`] ? <span className="mt-1 block text-xs font-medium text-rose-600">{formErrors[`item_${index}`]}</span> : null}
                   </label>
 
-                  <FormInput
-                    label="Cost Code"
-                    name={`cost_code_${index}`}
-                    type="select"
-                    value={item.cost_code_id}
-                    onChange={(event) => updateRequestItem(index, { cost_code_id: event.target.value })}
-                    options={costCodeOptions}
-                  />
+                  <label className="block text-sm font-medium text-slate-700">
+                    <span>Cost Code</span>
+                    <input
+                      list="purchase-request-cost-code-options"
+                      value={item.cost_code || ""}
+                      onChange={(event) => handleCostCodeChange(index, event.target.value)}
+                      placeholder="Ketik cost code atau pilih dari master"
+                      className="mt-1 block h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                    />
+                    {item.cost_code_id ? <span className="mt-1 block text-xs text-slate-500">Linked to master cost code.</span> : null}
+                  </label>
                   <FormInput
                     label="Unit"
                     name={`unit_${index}`}
@@ -771,7 +821,7 @@ export default function PurchaseRequestPage() {
                   </div>
                   <div className="flex items-center justify-between gap-3 sm:col-span-2">
                     <p className="text-sm text-slate-500">
-                      Item total: <span className="font-semibold text-slate-800">{currency(normalizeNumber(item.quantity, 1) * normalizeNumber(item.estimated_price, 0))}</span>
+                      Item total: <span className="font-semibold text-slate-800">{currency(normalizeNumber(item.quantity, 1) * normalizeNumber(item.estimated_price, 0), formData.currency)}</span>
                     </p>
                     <button
                       type="button"
@@ -799,7 +849,7 @@ export default function PurchaseRequestPage() {
             />
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
               <p className="text-xs uppercase tracking-wider text-slate-500">Estimated Amount</p>
-              <p className="mt-1 text-lg font-semibold text-slate-950">{currency(totalAmount)}</p>
+              <p className="mt-1 text-lg font-semibold text-slate-950">{currency(totalAmount, formData.currency)}</p>
             </div>
           </section>
         </form>

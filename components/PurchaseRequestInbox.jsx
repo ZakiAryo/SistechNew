@@ -15,10 +15,10 @@ const poStatusOptions = [
   { value: "approved", label: "Approved" }
 ];
 
-function currency(value) {
+function currency(value, currencyCode = "IDR") {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
-    currency: "IDR",
+    currency: currencyCode,
     maximumFractionDigits: 0
   }).format(Number(value || 0));
 }
@@ -106,6 +106,7 @@ export default function PurchaseRequestInbox() {
             unit,
             estimated_price,
             cost_code_id,
+            cost_code,
             items(item_code, name)
           )
         `)
@@ -307,7 +308,7 @@ export default function PurchaseRequestInbox() {
                     <td className="px-4 py-3 text-sm text-slate-600">{row.projects?.project_code || "-"}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{getPrItemSummary(row)}</td>
                     <td className="max-w-md px-4 py-3 text-sm text-slate-600">{row.item_summary || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{currency(row.estimated_amount)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{currency(row.estimated_amount, row.currency)}</td>
                     <td className="px-4 py-3 text-sm capitalize text-slate-600">{row.status}</td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex flex-wrap gap-2">

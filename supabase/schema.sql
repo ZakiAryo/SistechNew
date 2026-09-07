@@ -83,6 +83,7 @@ create table if not exists public.purchase_requests (
   pr_number text unique,
   project_id uuid references public.projects(id) on delete set null,
   supplier_id uuid references public.suppliers(id) on delete set null,
+  currency text not null default 'IDR' check (currency in ('IDR', 'USD', 'EUR')),
   requested_by uuid references public.profiles(id) on delete set null,
   status text default 'draft',
   request_date date default current_date,
@@ -158,6 +159,7 @@ alter table public.projects
 alter table public.purchase_requests
   add column if not exists needed_date date,
   add column if not exists supplier_id uuid references public.suppliers(id) on delete set null,
+  add column if not exists currency text not null default 'IDR',
   add column if not exists priority text default 'normal',
   add column if not exists item_summary text,
   add column if not exists item_id uuid references public.items(id) on delete set null,
@@ -231,6 +233,7 @@ create table if not exists public.purchase_request_items (
   purchase_request_id uuid references public.purchase_requests(id) on delete cascade,
   item_id uuid references public.items(id) on delete set null,
   cost_code_id uuid references public.cost_codes(id) on delete set null,
+  cost_code text,
   item_name text not null,
   description text,
   quantity numeric(12,2) default 1,
@@ -259,6 +262,9 @@ alter table public.contracts
 alter table public.purchase_order_items
   add column if not exists cost_code_id uuid references public.cost_codes(id) on delete set null,
   add column if not exists item_id uuid references public.items(id) on delete set null;
+
+alter table public.purchase_request_items
+  add column if not exists cost_code text;
 
 create table if not exists public.delivery_orders (
   id uuid primary key default gen_random_uuid(),

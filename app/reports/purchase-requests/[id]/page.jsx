@@ -54,6 +54,7 @@ async function loadPurchaseRequestReport(id) {
         unit,
         estimated_price,
         cost_code_id,
+        cost_code,
         items(item_code, name, unit),
         cost_codes(code, name)
       )
