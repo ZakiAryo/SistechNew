@@ -726,7 +726,7 @@ export default function PurchaseRequestPage() {
               options={priorityOptions}
               required
             />
-            <FormInput label="Request Date" name="request_date" type="date" value={formData.request_date} onChange={handleHeaderChange} />
+            <FormInput label="Request Date" name="request_date" type="month" value={formData.request_date} onChange={handleHeaderChange} />
             <FormInput label="Needed Date" name="needed_date" type="date" value={formData.needed_date} onChange={handleHeaderChange} />
           </section>
 
