@@ -215,75 +215,123 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
             <p className="mt-1 text-[10px] font-bold uppercase">Pesanan Pembelian</p>
           </div>
           <div className="pt-7 text-right text-[8px]">
-            <p>Page-1 of 1 : Original</p>
+            <p>Page/Hal : 1 of/dari 1</p>
           </div>
         </header>
 
-        <section className="mt-2 border border-black">
-          <div className="grid grid-cols-[1.1fr_1fr]">
-            <div className="min-h-[34mm] border-r border-black p-1.5">
-              <p className="font-bold">Kepada / Vendor :</p>
-              <p className="mt-1 font-bold">{supplier?.name || "-"}</p>
-              <p className="mt-1 whitespace-pre-line leading-snug">{supplier?.address || "-"}</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <p>Fax : -</p>
-                <p>Telp. : {supplier?.phone || "-"}</p>
+        <section className="mt-2 border-x border-t border-black">
+          <div className="grid grid-cols-[135mm_59mm]">
+            <div className="border-r border-black flex flex-col">
+              <div className="border-b border-black p-1.5 flex-1">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5">Supplier / Pemasok :</div>
+                <p className="font-bold">{supplier?.name || "-"}</p>
+                <p className="whitespace-pre-line leading-snug">{supplier?.address || "-"}</p>
+                <div className="mt-1 flex gap-4">
+                  <p>Fax. : -</p>
+                  <p>Telp. : {supplier?.phone || "-"}</p>
+                </div>
+              </div>
+              <div className="border-b border-black px-1.5 py-1">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5 leading-none">Delivery Date</div>
+                <div className="leading-none flex mt-0.5">
+                  <div className="w-[30mm]">Tgl. Pengiriman</div>
+                  <div>: {formatDate(deliveryDate)}</div>
+                </div>
+              </div>
+              <div className="border-b border-black px-1.5 py-1">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5 leading-none">Terms of Delivery</div>
+                <div className="leading-none flex mt-0.5">
+                  <div className="w-[30mm]">Syarat Pengiriman</div>
+                  <div>: {record?.delivery_status || ""}</div>
+                </div>
+              </div>
+              <div className="px-1.5 py-1">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5 leading-none">Partial Shipment / Pengiriman Sebagian :</div>
+                <div className="leading-none mt-1 flex gap-4">
+                  <div className="flex gap-1 items-end">
+                    <div>
+                      <div className="inline-block border-b border-black pb-0.5 mb-0.5">Allowed</div>
+                      <div>Diijinkan</div>
+                    </div>
+                    <span>:</span>
+                    <div className="w-5 h-3 border border-black mb-0.5"></div>
+                  </div>
+                  <div className="flex gap-1 items-end">
+                    <div>
+                      <div className="inline-block border-b border-black pb-0.5 mb-0.5">Not Allowed</div>
+                      <div>Tdk Diijinkan</div>
+                    </div>
+                    <span>:</span>
+                    <div className="w-5 h-3 border border-black mb-0.5 flex items-center justify-center font-bold">✓</div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <PoInfoCell label="P.O. No." value={record?.po_number} />
-              <PoInfoCell label="Date / Tanggal" value={formatShortDate(orderDate)} />
-              <PoInfoCell label="P.R. No." value={purchaseRequest?.pr_number} />
-              <PoInfoCell label="C.C. No." value={project?.project_code} />
-              <PoInfoCell label="Your Reference" value={deliveryOrder?.do_number || "-"} />
+            <div className="flex flex-col text-[7.5px]">
+              <div className="grid grid-cols-[30mm_1fr] border-b border-black">
+                <div className="border-r border-black px-1 py-0.5">P.O. No.</div>
+                <div className="px-1 py-0.5">{record?.po_number}</div>
+              </div>
+              <div className="grid grid-cols-[30mm_1fr] border-b border-black">
+                <div className="border-r border-black px-1 py-0.5">Date/Tanggal</div>
+                <div className="px-1 py-0.5">{formatDate(orderDate)}</div>
+              </div>
+              <div className="grid grid-cols-[30mm_1fr] border-b border-black">
+                <div className="border-r border-black px-1 py-0.5 leading-none">P.R. No./No. Permintaan Pembelian</div>
+                <div className="px-1 py-0.5">{purchaseRequest?.pr_number}</div>
+              </div>
+              <div className="grid grid-cols-[30mm_1fr] border-b border-black">
+                <div className="border-r border-black px-1 py-0.5 leading-none">C.C. No./No. Pembebanan Biaya</div>
+                <div className="px-1 py-0.5">{project?.project_code}</div>
+              </div>
+              <div className="grid grid-cols-[30mm_1fr] border-b border-black">
+                <div className="border-r border-black px-1 py-0.5 leading-none">Your Reference/Menunjuk Pada</div>
+                <div className="px-1 py-0.5">{deliveryOrder?.do_number || "-"}</div>
+              </div>
+              <div className="border-b border-black px-1 py-0.5">
+                Location/Lokasi : {project?.project_name || project?.project_code || "-"}
+              </div>
+              <div className="px-1 py-0.5 flex-1">
+                Consignee Address / Alamat Penerima :<br/>
+                PT. ENVITECH PERKASA<br/>
+                {project?.project_name || project?.project_code || "-"}<br/>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-[1.1fr_1fr] border-t border-black">
-            <div className="grid grid-cols-[105px_1fr] border-r border-black">
-              <div className="border-r border-black px-1.5 py-1 font-semibold">Delivery Date</div>
-              <div className="px-1.5 py-1 font-semibold">{formatShortDate(deliveryDate)}</div>
-            </div>
-            <div className="grid grid-cols-[126px_1fr]">
-              <div className="border-r border-black px-1.5 py-1 font-semibold">Charging Address / Alamat Penerima</div>
-              <div className="px-1.5 py-1">{project?.project_name || supplier?.address || "-"}</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-[1.1fr_1fr] border-t border-black">
-            <div className="grid grid-cols-[105px_1fr] border-r border-black">
-              <div className="border-r border-black px-1.5 py-1 font-semibold">Term of Delivery</div>
-              <div className="px-1.5 py-1 font-semibold">{record?.delivery_status || "Ready Stock"}</div>
-            </div>
-            <div className="px-1.5 py-1">
-              {deliveryOrder?.notes || "Delivery note will follow purchase order processing."}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-x border-b border-black p-1.5">
-          <p className="font-bold">Dear Sir,</p>
-          <p className="mt-0.5">
-            Please furnish the following material/equipment as described below subject to all terms and conditions set forth on back side of the Purchase Order.
-          </p>
-          <div className="mt-1 grid grid-cols-[72px_1fr] gap-3">
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-              <span>Direct</span><PoCheckBox checked />
-              <span>Indirect</span><PoCheckBox />
-            </div>
-            <div className="text-[8px] leading-snug">
-              Harap dipenuhi barang-barang/peralatan tersebut di bawah ini sesuai dengan seluruh ketentuan dan syarat-syarat yang tercantum pada bagian belakang Pesanan Pembelian ini.
-            </div>
+          <div className="border-t border-black px-1.5 py-1 text-[7.5px]">
+            Please furnish the following materials/equipment as described below subject to all terms and conditions set forth on back side of the Purchase Order
+            <br />
+            Harap dipenuhi barang-barang/peralatan tersebut di bawah ini sesuai dengan seluruh ketentuan-ketentuan dan syarat-syarat yang tercantum pada bagian belakang Pesanan Pembelian ini.
           </div>
         </section>
 
         <table className="w-full text-[8px]">
           <thead>
             <tr>
-              <th className="w-[9mm] px-1 py-1 text-center">Item<br />No.</th>
-              <th className="w-[18mm] px-1 py-1 text-center">Qty<br />Jumlah</th>
-              <th className="w-[18mm] px-1 py-1 text-center">Unit<br />Satuan</th>
-              <th className="px-1 py-1 text-center">Description<br />Penjelasan</th>
-              <th className="w-[29mm] px-1 py-1 text-center">Unit Price<br />Harga Sat. (IDR)</th>
-              <th className="w-[30mm] px-1 py-1 text-center">Total Amount<br />Jumlah (IDR)</th>
+              <th className="w-[9mm] px-1 py-1 text-center align-top">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5">Item</div>
+                <div>No.</div>
+              </th>
+              <th className="w-[18mm] px-1 py-1 text-center align-top">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5">Qty</div>
+                <div>Jumlah</div>
+              </th>
+              <th className="w-[18mm] px-1 py-1 text-center align-top">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5">Unit</div>
+                <div>Satuan</div>
+              </th>
+              <th className="px-1 py-1 text-center align-top">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5">Description</div>
+                <div>Penjelasan</div>
+              </th>
+              <th className="w-[29mm] px-1 py-1 text-center align-top">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5">Unit Price</div>
+                <div>Harga Sat. (IDR)</div>
+              </th>
+              <th className="w-[30mm] px-1 py-1 text-center align-top">
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5">Total Amount</div>
+                <div>Jumlah (IDR)</div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -300,15 +348,17 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
                   <td className="px-1 py-2 text-center">{formatNumber(quantity || 1)}</td>
                   <td className="px-1 py-2 text-center">{row.unit || row.items?.unit || unitFallback}</td>
                   <td className="min-h-[70mm] px-2 py-2 leading-snug">
-                    <p className="font-bold">{itemName}</p>
+                    <p>{itemName}</p>
                     {itemCode ? <p>{itemCode}</p> : null}
                     {row.description ? <p className="mt-1 whitespace-pre-line">{row.description}</p> : null}
-                    <div className="mt-3 space-y-1">
-                      <p>- Delivery Time : {record?.delivery_status || "Ready Stock"}</p>
-                      <p>- Project : {project?.project_name || project?.project_code || "-"}</p>
-                      <p>- PR No. : {purchaseRequest?.pr_number || "-"}</p>
-                      <p>- Payment : {record?.payment_status || "unpaid"}</p>
-                      <p>- Other Terms &amp; Condition refer to PO terms.</p>
+                    <div className="mt-8 space-y-0.5">
+                      <p>GENERAL TERM &amp; CONDITION:</p>
+                      <p>- Delivery time : {record?.delivery_status || "Ready stock"}</p>
+                      <p>- Franco {project?.project_name || project?.project_code || "-"}</p>
+                      <p>- Penalty : One Permile per Day max 5%</p>
+                      <p>- Grand Total Prices is INCLUDED PPN 11%</p>
+                      <p>- Kepatuhan SMK3L (Sistem Manajemen Kesehatan, Keselamatan Kerja dan Lingkungan)</p>
+                      <p>- Other Term &amp; Condition refer to Qtn</p>
                     </div>
                   </td>
                   <td className="px-1 py-2 text-right">{formatNumber(unitPrice)}</td>
@@ -327,56 +377,60 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
           </tbody>
         </table>
 
-        <section className="grid grid-cols-[1fr_55mm] border-x border-b border-black">
-          <div className="border-r border-black p-1.5 text-[8px]">
-            <p className="font-bold">Terms of Payment / Syarat Pembayaran :</p>
-            <p className="mt-1">Payment will be processed after BAP / delivery document and invoice are received.</p>
-            <p className="mt-2 font-semibold">Notes / Catatan :</p>
-            <p>{purchaseRequest?.item_summary || deliveryOrder?.notes || "-"}</p>
-          </div>
-          <div className="text-[8px]">
-            <div className="grid grid-cols-[1fr_23mm] border-b border-black">
-              <div className="px-1.5 py-1 font-bold">SUB TOTAL</div>
-              <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(subtotal)}</div>
-            </div>
-            <div className="grid grid-cols-[1fr_23mm] border-b border-black">
-              <div className="px-1.5 py-1 font-bold">DISCOUNT</div>
-              <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(discount)}</div>
-            </div>
-            <div className="grid grid-cols-[1fr_23mm] border-b border-black">
-              <div className="px-1.5 py-1 font-bold">TOTAL</div>
-              <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(subtotal - discount)}</div>
-            </div>
-            <div className="grid grid-cols-[1fr_23mm] border-b border-black">
-              <div className="px-1.5 py-1 font-bold">TAX 11%</div>
-              <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(tax)}</div>
-            </div>
-            <div className="grid grid-cols-[1fr_23mm]">
-              <div className="px-1.5 py-1 font-bold">GRAND TOTAL</div>
-              <div className="border-l border-black px-1.5 py-1 text-right font-bold">{formatNumber(total)}</div>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-[1fr_55mm] border-x border-b border-black text-[8px]">
-          <div className="grid grid-cols-[42mm_1fr] border-r border-black">
-            <div className="border-r border-black p-1.5">
-              <p className="font-bold">Notes / Catatan :</p>
+        <section className="border-x border-b border-black text-[8px]">
+          <div className="grid grid-cols-[135mm_59mm]">
+            <div className="border-r border-black p-1.5 flex flex-col justify-between">
+              <div>
+                <p>Terms of Payment / Syarat Pembayaran :</p>
+                <div className="inline-block border-b border-black pb-0.5 mb-0.5 mt-1">Payment Will be Proceed After BAP :</div>
+                <p>100%, 4 weeks After Goods &amp; Invoice received</p>
+              </div>
             </div>
             <div>
-              <div className="grid grid-cols-[44mm_1fr] border-b border-black">
-                <div className="border-r border-black p-1.5 font-semibold">Supplier Acceptance / Persetujuan Pemasok</div>
-                <div className="p-1.5">{supplier?.name || "-"}</div>
+              <div className="grid grid-cols-[29mm_30mm] border-b border-black">
+                <div className="px-1.5 py-1">SUB TOTAL</div>
+                <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(subtotal)}</div>
               </div>
-              <div className="grid grid-cols-[44mm_1fr]">
-                <div className="border-r border-black p-1.5 font-semibold">Signature / Date :</div>
-                <div className="min-h-[14mm] p-1.5" />
+              <div className="grid grid-cols-[29mm_30mm] border-b border-black">
+                <div className="px-1.5 py-1">DISCOUNT</div>
+                <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(discount)}</div>
+              </div>
+              <div className="grid grid-cols-[29mm_30mm] border-b border-black">
+                <div className="px-1.5 py-1">TOTAL</div>
+                <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(subtotal - discount)}</div>
+              </div>
+              <div className="grid grid-cols-[29mm_30mm] border-b border-black">
+                <div className="px-1.5 py-1">TAX 11%</div>
+                <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(tax)}</div>
+              </div>
+              <div className="grid grid-cols-[29mm_30mm]">
+                <div className="px-1.5 py-1">GRAND TOTAL</div>
+                <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(total)}</div>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 text-center font-semibold">
-            <div className="flex min-h-[24mm] items-end justify-center border-r border-black p-1.5">Purchasing Mgr.</div>
-            <div className="flex min-h-[24mm] items-end justify-center p-1.5">Director</div>
+          
+          <div className="border-t border-b border-black p-1.5">
+            (Terbilang : )
+          </div>
+
+          <div className="grid grid-cols-[30mm_105mm_29mm_30mm]">
+            <div className="border-r border-black p-1.5">
+              Note / Catatan :
+            </div>
+            <div className="border-r border-black p-1.5 flex flex-col justify-between min-h-[30mm]">
+              <div>
+                Supplier Acceptance / Persetujuan Pemasok<br/>
+                {supplier?.name || "-"}
+              </div>
+              <div>Signature / Date :</div>
+            </div>
+            <div className="border-r border-black p-1.5 flex flex-col justify-end text-center">
+              Purchasing Mgr.
+            </div>
+            <div className="p-1.5 flex flex-col justify-end text-center">
+              Director
+            </div>
           </div>
         </section>
       </section>
