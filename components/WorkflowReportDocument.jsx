@@ -594,7 +594,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
         </table>
 
         <section className="border-x border-b border-black">
-          <div className="grid grid-cols-[53mm_1fr]">
+          <div className="grid grid-cols-[53mm_1fr] border-b border-black">
             <div className="px-2 py-1">
               <div className="inline-block border-b border-black pb-0.5 mb-0.5">
                 Required For / Date
@@ -606,7 +606,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-[53mm_1fr_63mm]">
+          <div className="grid grid-cols-[53mm_1fr_63mm] border-b border-black">
             <div className="px-2 py-2">
               <div className="inline-block border-b border-black pb-0.5 mb-0.5">
                 Ref. Supplier
@@ -616,7 +616,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
             <div className="px-2 py-2">
               : {supplier?.name || relatedPo?.suppliers?.supplier_code || ""}
             </div>
-            <div className="grid grid-cols-3 divide-x divide-black border-l border-t border-b border-black">
+            <div className="grid grid-cols-3 divide-x divide-black border-l border-black">
               <PrApprovalBox label="Requested by" subLabel="Diminta oleh" />
               <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
               <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
