@@ -384,13 +384,13 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
   );
 }
 
-function PrApprovalBox({ label }) {
+function PrApprovalBox({ label, subLabel }) {
   return (
-    <div className="flex min-h-[23mm] flex-col justify-end border-l border-black text-center">
-      <div className="border-t border-black px-1 py-1 text-[7px] font-semibold leading-tight">
+    <div className="flex min-h-[23mm] flex-col justify-end text-center">
+      <div className="border-t border-black px-1 py-1 text-[8px] leading-tight">
         {label}
         <br />
-        Disetujui oleh
+        {subLabel}
       </div>
     </div>
   );
@@ -538,7 +538,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
               <th className="w-[18mm] px-1 py-1 text-center">Quantity<br />Jumlah</th>
               <th className="w-[20mm] px-1 py-1 text-center">Unit<br />Satuan</th>
               <th className="px-1 py-1 text-center">Description<br />Penjelasan</th>
-              <th className="w-[42mm] px-1 py-1 text-center">Item Summary</th>
+              <th className="w-[42mm] px-1 py-1 text-center">Remarks<br />Keterangan</th>
             </tr>
           </thead>
           <tbody>
@@ -577,42 +577,41 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           </tbody>
         </table>
 
-        <section className="grid grid-cols-[50mm_1fr] border-x border-b border-black">
-          <div className="border-r border-black px-2 py-1 font-semibold">
+        <section className="grid grid-cols-[53mm_1fr] border-x border-b border-black">
+          <div className="border-r border-black px-2 py-1">
             Required For / Date
             <br />
             Diperlukan untuk / Tgl.
           </div>
           <div className="px-2 py-1">
-            {project?.project_name || project?.project_code || "-"} / {formatShortDate(record?.needed_date || record?.request_date)}
+            : {project?.project_name || project?.project_code || "-"} / {formatShortDate(record?.needed_date || record?.request_date)}
           </div>
         </section>
 
-        <section className="grid grid-cols-[50mm_1fr_78mm] border-x border-b border-black">
+        <section className="grid grid-cols-[53mm_1fr_63mm] border-x border-b border-black">
           <div className="border-r border-black px-2 py-2">
-            <p className="font-semibold">Ref. Supplier</p>
+            <p>Ref. Supplier</p>
             <p>Ref. Pemasok</p>
           </div>
           <div className="border-r border-black px-2 py-2">
-            {supplier?.name || relatedPo?.suppliers?.supplier_code || "-"}
+            : {supplier?.name || relatedPo?.suppliers?.supplier_code || ""}
           </div>
-          <div className="grid grid-cols-3">
-            <PrApprovalBox label="Requested by" />
-            <PrApprovalBox label="Approved by" />
-            <PrApprovalBox label="Approved by" />
+          <div className="grid grid-cols-3 divide-x divide-black">
+            <PrApprovalBox label="Requested by" subLabel="Diminta oleh" />
+            <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
+            <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
           </div>
         </section>
 
-        <section className="grid grid-cols-[50mm_1fr_78mm] border-x border-b border-black">
+        <section className="grid grid-cols-[1fr_63mm] border-x border-b border-black">
           <div className="border-r border-black px-2 py-2">
             <p>Cost Code No. : {costCodeSummary || "-"}</p>
           </div>
-          <div className="border-r border-black px-2 py-2">
-            <p className="font-semibold">Remarks</p>
+          <div className="px-2 py-2">
+            <p>Remarks</p>
             <p>Keterangan</p>
             <p className="mt-1 whitespace-pre-line">{record?.notes || "-"}</p>
           </div>
-          <div />
         </section>
       </section>
     </main>
