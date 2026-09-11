@@ -581,7 +581,7 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           <div className="pt-4 text-left">
             <p className="text-[7px] uppercase tracking-wide">Draft - Phase Created</p>
             <div className="mt-5 grid grid-cols-[42px_1fr] gap-x-1 text-[8px]">
-              <span className="font-semibold">No. PR :</span>
+              <span className="font-semibold">No. :</span>
               <span className="font-bold">{record?.pr_number || "-"}</span>
               <span>Attachment / Lampiran :</span>
               <span>-</span>
