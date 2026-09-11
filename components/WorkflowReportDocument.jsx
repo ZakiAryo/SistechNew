@@ -124,7 +124,7 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
       ];
   const subtotal = poItems.reduce((total, row) => total + Number(row.total_price || row.quantity * row.unit_price || 0), 0);
   const discount = 0;
-  const tax = 0;
+  const tax = (subtotal - discount) * 0.11;
   const total = subtotal - discount + tax;
 
   return (
