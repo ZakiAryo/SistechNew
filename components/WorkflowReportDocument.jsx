@@ -620,7 +620,6 @@ function PurchaseRequestDocument({ record, relatedPo }) {
               const itemDescription = [
                 detail.item_name || detailItem.name,
                 detailItem.item_code,
-                record?.needed_date ? `Waktu dibutuhkan ${formatShortDate(record.needed_date)}` : "",
                 detail.cost_code || detail.cost_codes?.code
                   ? `Cost Code : ${detail.cost_code || [detail.cost_codes?.code, detail.cost_codes?.name].filter(Boolean).join(" - ")}`
                   : ""
