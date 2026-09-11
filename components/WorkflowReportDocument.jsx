@@ -380,7 +380,7 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
           </tbody>
         </table>
 
-        <section className="border-x border-b border-black text-[8px]">
+        <section className="border-x border-t border-b border-black text-[8px]">
           <div className="grid grid-cols-[135mm_59mm]">
             <div className="border-r border-black p-1.5 flex flex-col justify-between">
               <div>
