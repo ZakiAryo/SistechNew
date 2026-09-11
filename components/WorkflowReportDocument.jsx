@@ -577,43 +577,43 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           </tbody>
         </table>
 
-        <section className="grid grid-cols-[50mm_1fr] border-x border-b border-black">
-          <div className="border-r border-black px-2 py-1 font-semibold">
-            Required For / Date
-            <br />
-            Diperlukan untuk / Tgl.
-          </div>
-          <div className="px-2 py-1">
-            {project?.project_name || project?.project_code || "-"} / {formatShortDate(record?.needed_date || record?.request_date)}
-          </div>
-        </section>
+<section className="grid grid-cols-[50mm_1fr] border-x border-b border-black">
+  <div className="px-2 py-1 font-semibold">
+    Required For / Date
+    <br />
+    Diperlukan untuk / Tgl.
+  </div>
 
-        <section className="grid grid-cols-[50mm_1fr_78mm] border-x border-b border-black">
-          <div className="border-r border-black px-2 py-2">
-            <p className="font-semibold">Ref. Supplier</p>
-            <p>Ref. Pemasok</p>
-          </div>
-          <div className="border-r border-black px-2 py-2">
-            {supplier?.name || relatedPo?.suppliers?.supplier_code || "-"}
-          </div>
-          <div className="grid grid-cols-3">
-            <PrApprovalBox label="Requested by" />
-            <PrApprovalBox label="Approved by" />
-            <PrApprovalBox label="Approved by" />
-          </div>
-        </section>
+  <div className="px-2 py-1">
+    {project?.project_name || project?.project_code || "-"} /{" "}
+    {formatShortDate(record?.needed_date || record?.request_date)}
+  </div>
+</section>
 
-        <section className="grid grid-cols-[50mm_1fr_78mm] border-x border-b border-black">
-          <div className="border-r border-black px-2 py-2">
-            <p>Cost Code No. : {costCodeSummary || "-"}</p>
-          </div>
-          <div className="border-r border-black px-2 py-2">
-            <p className="font-semibold">Remarks</p>
-            <p>Keterangan</p>
-            <p className="mt-1 whitespace-pre-line">{record?.notes || "-"}</p>
-          </div>
-          <div />
-        </section>
+<section className="grid grid-cols-[50mm_1fr] border-x border-b border-black">
+  <div className="px-2 py-2">
+    <p className="font-semibold">Ref. Supplier</p>
+    <p>Ref. Pemasok</p>
+  </div>
+
+  <div className="grid grid-cols-3">
+    <PrApprovalBox label="Requested by" />
+    <PrApprovalBox label="Approved by" />
+    <PrApprovalBox label="Approved by" />
+  </div>
+</section>
+
+<section className="border-x border-b border-black px-2 py-1">
+  <p>Cost Code No. : {costCodeSummary || "-"}</p>
+</section>
+
+<section className="border-x border-b border-black px-2 py-2">
+  <p className="font-semibold">Remarks</p>
+  <p>Keterangan</p>
+  <p className="mt-1 whitespace-pre-line">
+    {record?.notes || "-"}
+  </p>
+</section>
       </section>
     </main>
   );
