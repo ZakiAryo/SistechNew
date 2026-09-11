@@ -174,9 +174,12 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
           font-size: 11px;
         }
 
-        .po-doc th,
+        .po-doc th {
+          border: 1px solid #000;  
+        }
         .po-doc td {
-          border: 1px solid #000;
+          border-left: 1px solid #000;
+          border-right: 1px solid #000;
         }
       `}</style>
 
