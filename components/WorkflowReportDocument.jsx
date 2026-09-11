@@ -388,9 +388,10 @@ function PrApprovalBox({ label, subLabel }) {
   return (
     <div className="flex min-h-[23mm] flex-col justify-end text-center">
       <div className="border-t border-black px-1 py-1 text-[8px] leading-tight">
-        {label}
-        <br />
-        {subLabel}
+        <div className="inline-block border-b border-black pb-0.5 mb-0.5">
+          {label}
+        </div>
+        <div>{subLabel}</div>
       </div>
     </div>
   );
@@ -577,40 +578,47 @@ function PurchaseRequestDocument({ record, relatedPo }) {
           </tbody>
         </table>
 
-        <section className="grid grid-cols-[53mm_1fr] border-x border-b border-black">
-          <div className="border-r border-black px-2 py-1">
-            Required For / Date
-            <br />
-            Diperlukan untuk / Tgl.
+        <section className="border-x border-b border-black">
+          <div className="grid grid-cols-[53mm_1fr]">
+            <div className="border-r border-black px-2 py-1">
+              <div className="inline-block border-b border-black pb-0.5 mb-0.5">
+                Required For / Date
+              </div>
+              <div>Diperlukan untuk / Tgl.</div>
+            </div>
+            <div className="px-2 py-1">
+              : {project?.project_name || project?.project_code || "-"} / {formatShortDate(record?.needed_date || record?.request_date)}
+            </div>
           </div>
-          <div className="px-2 py-1">
-            : {project?.project_name || project?.project_code || "-"} / {formatShortDate(record?.needed_date || record?.request_date)}
-          </div>
-        </section>
 
-        <section className="grid grid-cols-[53mm_1fr_63mm] border-x border-b border-black">
-          <div className="border-r border-black px-2 py-2">
-            <p>Ref. Supplier</p>
-            <p>Ref. Pemasok</p>
+          <div className="grid grid-cols-[53mm_1fr_63mm]">
+            <div className="border-r border-black px-2 py-2">
+              <div className="inline-block border-b border-black pb-0.5 mb-0.5">
+                Ref. Supplier
+              </div>
+              <div>Ref. Pemasok</div>
+            </div>
+            <div className="border-r border-black px-2 py-2">
+              : {supplier?.name || relatedPo?.suppliers?.supplier_code || ""}
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-black border-l border-t border-b border-black">
+              <PrApprovalBox label="Requested by" subLabel="Diminta oleh" />
+              <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
+              <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
+            </div>
           </div>
-          <div className="border-r border-black px-2 py-2">
-            : {supplier?.name || relatedPo?.suppliers?.supplier_code || ""}
-          </div>
-          <div className="grid grid-cols-3 divide-x divide-black">
-            <PrApprovalBox label="Requested by" subLabel="Diminta oleh" />
-            <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
-            <PrApprovalBox label="Approved by" subLabel="Disetujui oleh" />
-          </div>
-        </section>
 
-        <section className="grid grid-cols-[1fr_63mm] border-x border-b border-black">
-          <div className="border-r border-black px-2 py-2">
-            <p>Cost Code No. : {costCodeSummary || "-"}</p>
-          </div>
-          <div className="px-2 py-2">
-            <p>Remarks</p>
-            <p>Keterangan</p>
-            <p className="mt-1 whitespace-pre-line">{record?.notes || "-"}</p>
+          <div className="grid grid-cols-[1fr_63mm]">
+            <div className="px-2 py-2">
+              Cost Code No. : {costCodeSummary || "-"}
+            </div>
+            <div className="border-l border-black px-2 py-2">
+              <div className="inline-block border-b border-black pb-0.5 mb-0.5">
+                Remarks
+              </div>
+              <div>Keterangan</div>
+              <div className="mt-1 whitespace-pre-line">{record?.notes || "-"}</div>
+            </div>
           </div>
         </section>
       </section>
