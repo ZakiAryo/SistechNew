@@ -704,8 +704,75 @@ export default function MasterDataPage({
       payload[userIdField] = currentUser.id;
     }
 
+    let resolvedPoItems = poSelectedItems;
+
     if (isPurchaseOrder) {
-      payload.item_id = poSelectedItems[0]?.item_id || null;
+      // Item manual tidak wajib dibuat menjadi master item.
+      // Ini mencegah trigger/generator unique_code pada tabel `items`
+      // menolak nama item manual yang kebetulan menghasilkan kode yang sudah ada.
+      resolvedPoItems = [];
+
+      for (const item of poSelectedItems) {
+        let masterItemId = item.item_id || null;
+        const itemName = String(item.item_name || item.items?.name || "").trim();
+
+        if (!item.manual && !masterItemId && itemName) {
+          const { data: existingItems, error: existingItemError } = await supabase
+            .from("items")
+            .select("id, name")
+            .ilike("name", itemName);
+
+          if (existingItemError) {
+            setToast({ type: "error", message: formatSupabaseError(existingItemError) });
+            setSubmitting(false);
+            return;
+          }
+
+          const normalizedName = itemName.trim().toLowerCase();
+          const existingItem = (existingItems || []).find(
+            (candidate) => candidate.name?.trim().toLowerCase() === normalizedName
+          );
+
+          if (existingItem?.id) {
+            masterItemId = existingItem.id;
+          } else {
+            const { data: newItem, error: createItemError } = await supabase
+              .from("items")
+              .insert({ name: itemName })
+              .select("id")
+              .single();
+
+            if (createItemError) {
+              // Jika terjadi duplicate unique_code karena data master sudah ada,
+              // coba ambil ulang berdasarkan nama sebelum menganggap proses gagal.
+              const { data: retryItems } = await supabase
+                .from("items")
+                .select("id, name")
+                .ilike("name", itemName);
+
+              const retryItem = (retryItems || []).find(
+                (candidate) => candidate.name?.trim().toLowerCase() === normalizedName
+              );
+
+              if (retryItem?.id) {
+                masterItemId = retryItem.id;
+              } else {
+                setToast({ type: "error", message: formatSupabaseError(createItemError) });
+                setSubmitting(false);
+                return;
+              }
+            } else {
+              masterItemId = newItem.id;
+            }
+          }
+        }
+
+        resolvedPoItems.push({ ...item, item_id: masterItemId });
+      }
+
+      // Header PO memakai item master pertama yang tersedia.
+      // Item manual boleh tidak memiliki item_id.
+      payload.item_id = resolvedPoItems.find((item) => item.item_id)?.item_id || null;
       payload.total_amount = poTotal;
     }
 
@@ -735,53 +802,6 @@ export default function MasterDataPage({
         setSubmitting(false);
         return;
       }
-
-      // Pastikan setiap item PO memiliki record di master `items`.
-      // Jika item sudah punya item_id, gunakan record master tersebut.
-      // Jika item_id kosong, cari berdasarkan nama; bila belum ada, buat item master baru.
-      const resolvedPoItems = [];
-      for (const item of poSelectedItems) {
-        let masterItemId = item.item_id || null;
-        const itemName = String(item.item_name || item.items?.name || "").trim();
-
-        if (!masterItemId && itemName) {
-          const { data: existingItem, error: existingItemError } = await supabase
-            .from("items")
-            .select("id")
-            .ilike("name", itemName)
-            .limit(1)
-            .maybeSingle();
-
-          if (existingItemError) {
-            setToast({ type: "error", message: formatSupabaseError(existingItemError) });
-            setSubmitting(false);
-            return;
-          }
-
-          if (existingItem?.id) {
-            masterItemId = existingItem.id;
-          } else {
-            const { data: newItem, error: createItemError } = await supabase
-              .from("items")
-              .insert({ name: itemName })
-              .select("id")
-              .single();
-
-            if (createItemError) {
-              setToast({ type: "error", message: formatSupabaseError(createItemError) });
-              setSubmitting(false);
-              return;
-            }
-
-            masterItemId = newItem.id;
-          }
-        }
-
-        resolvedPoItems.push({ ...item, item_id: masterItemId });
-      }
-
-      // Header PO memakai item pertama untuk kompatibilitas dengan struktur lama.
-      payload.item_id = resolvedPoItems[0]?.item_id || null;
 
       const detailRows = resolvedPoItems.map((item) => ({
         purchase_order_id: recordId,
