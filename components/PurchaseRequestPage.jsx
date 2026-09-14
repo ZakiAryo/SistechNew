@@ -122,7 +122,8 @@ export default function PurchaseRequestPage() {
   });
   const [requestItems, setRequestItems] = useState([{ ...emptyItem }]);
 
-  // Refs to each "Item / Barang" input so we can move/create focus on Enter.
+  // Refs to each "Item / Barang" textarea so we can focus a newly-added row
+  // when it's created via Shift+Enter.
   const itemInputRefs = useRef([]);
   const pendingFocusIndexRef = useRef(null);
 
@@ -294,7 +295,7 @@ export default function PurchaseRequestPage() {
   }, [toast]);
 
   // Keep the refs array in sync with the number of item rows, and apply any
-  // pending focus request (e.g. after a new row was added via Enter).
+  // pending focus request after a new row is added via Shift+Enter.
   useEffect(() => {
     itemInputRefs.current = itemInputRefs.current.slice(0, requestItems.length);
 
@@ -422,13 +423,10 @@ export default function PurchaseRequestPage() {
     });
   }
 
-  // Inserts a new empty row right after `insertAfterIndex` (or at the end when
-  // omitted, e.g. the "Tambah Item" button) and focuses its "Item / Barang" input.
-  function addItem(insertAfterIndex) {
+  function addItem() {
     setRequestItems((current) => {
-      const insertPosition = typeof insertAfterIndex === "number" ? insertAfterIndex + 1 : current.length;
-      const next = [...current.slice(0, insertPosition), { ...emptyItem }, ...current.slice(insertPosition)];
-      pendingFocusIndexRef.current = insertPosition;
+      const next = [...current, { ...emptyItem }];
+      pendingFocusIndexRef.current = next.length - 1;
       return next;
     });
   }
@@ -443,16 +441,14 @@ export default function PurchaseRequestPage() {
     });
   }
 
-  // Pressing Enter inside the "Item / Barang" field always inserts a new empty
-  // row right below the current one and focuses it. We prevent the default
-  // Enter behaviour so it doesn't submit the form instead.
-  function handleItemNameKeyDown(event, index) {
-    if (event.key !== "Enter") {
-      return;
+  // Shift+Enter inside the "Item / Barang" textarea adds a brand new item row
+  // (same as clicking "Tambah Item") and focuses it. Plain Enter is left
+  // alone so it keeps the browser's native newline behaviour in the textarea.
+  function handleItemNameKeyDown(event) {
+    if (event.key === "Enter" && event.shiftKey) {
+      event.preventDefault();
+      addItem();
     }
-
-    event.preventDefault();
-    addItem(index);
   }
 
   function validateForm() {
@@ -769,24 +765,18 @@ export default function PurchaseRequestPage() {
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Purchase Request Items</h3>
                 <p className="mt-1 text-xs text-slate-500">
-                  Pilih item master atau ketik nama barang bebas. Tekan Enter untuk menambah baris baru.
+                  Ketik nama barang bebas, Enter untuk baris baru di kolom ini. Shift+Enter menambah item baru.
                 </p>
               </div>
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                onClick={() => addItem()}
+                onClick={addItem}
               >
                 <Plus className="h-4 w-4" />
                 Tambah Item
               </button>
             </div>
-
-            <datalist id="purchase-request-item-options">
-              {itemOptions.map((option) => (
-                <option key={option.value} value={option.label} />
-              ))}
-            </datalist>
 
             <datalist id="purchase-request-cost-code-options">
               {costCodeOptions.map((option) => (
@@ -801,16 +791,16 @@ export default function PurchaseRequestPage() {
                     <span>
                       Item / Barang <span className="text-rose-600">*</span>
                     </span>
-                    <input
+                    <textarea
                       ref={(el) => {
                         itemInputRefs.current[index] = el;
                       }}
-                      list="purchase-request-item-options"
                       value={item.item_name || ""}
                       onChange={(event) => handleItemNameChange(index, event.target.value)}
-                      onKeyDown={(event) => handleItemNameKeyDown(event, index)}
-                      placeholder="Ketik nama barang atau pilih dari master item (Enter = baris baru)"
-                      className="mt-1 block h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                      onKeyDown={handleItemNameKeyDown}
+                      placeholder="Ketik nama barang, satu barang per baris (Shift+Enter = item baru)"
+                      rows={3}
+                      className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
                     />
                     {item.item_id ? <span className="mt-1 block text-xs text-slate-500">Linked to master item.</span> : null}
                     {formErrors[`item_${index}`] ? <span className="mt-1 block text-xs font-medium text-rose-600">{formErrors[`item_${index}`]}</span> : null}
