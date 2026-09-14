@@ -716,55 +716,13 @@ export default function MasterDataPage({
         let masterItemId = item.item_id || null;
         const itemName = String(item.item_name || item.items?.name || "").trim();
 
-        if (!item.manual && !masterItemId && itemName) {
-          const { data: existingItems, error: existingItemError } = await supabase
-            .from("items")
-            .select("id, name")
-            .ilike("name", itemName);
-
-          if (existingItemError) {
-            setToast({ type: "error", message: formatSupabaseError(existingItemError) });
-            setSubmitting(false);
-            return;
-          }
-
-          const normalizedName = itemName.trim().toLowerCase();
-          const existingItem = (existingItems || []).find(
-            (candidate) => candidate.name?.trim().toLowerCase() === normalizedName
-          );
-
-          if (existingItem?.id) {
-            masterItemId = existingItem.id;
-          } else {
-            const { data: newItem, error: createItemError } = await supabase
-              .from("items")
-              .insert({ name: itemName })
-              .select("id")
-              .single();
-
-            if (createItemError) {
-              // Jika terjadi duplicate unique_code karena data master sudah ada,
-              // coba ambil ulang berdasarkan nama sebelum menganggap proses gagal.
-              const { data: retryItems } = await supabase
-                .from("items")
-                .select("id, name")
-                .ilike("name", itemName);
-
-              const retryItem = (retryItems || []).find(
-                (candidate) => candidate.name?.trim().toLowerCase() === normalizedName
-              );
-
-              if (retryItem?.id) {
-                masterItemId = retryItem.id;
-              } else {
-                setToast({ type: "error", message: formatSupabaseError(createItemError) });
-                setSubmitting(false);
-                return;
-              }
-            } else {
-              masterItemId = newItem.id;
-            }
-          }
+        // Hanya gunakan master item yang memang sudah terhubung dari PR.
+        // Jangan membuat record baru di `items` dari nama item PO karena tabel
+        // `items` memiliki unique_code yang dapat bentrok dengan data existing.
+        // Item tanpa item_id disimpan sebagai detail PO biasa melalui item_name.
+        if (!item.manual && masterItemId) {
+          // masterItemId sudah berasal dari Purchase Request, jadi tidak perlu
+          // INSERT/UPDATE ke tabel `items`.
         }
 
         resolvedPoItems.push({ ...item, item_id: masterItemId });
