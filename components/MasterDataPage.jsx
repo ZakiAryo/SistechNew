@@ -431,20 +431,66 @@ export default function MasterDataPage({
     }
 
     const existingByRequestItem = new Map(
-      existingItems.map((item) => [item.purchase_request_item_id, item])
+      existingItems
+        .filter((item) => item.purchase_request_item_id)
+        .map((item) => [item.purchase_request_item_id, item])
     );
 
-    setPoDetailItems(
-      (requestItems || []).map((item) => {
-        const existing = existingByRequestItem.get(item.id);
-        return {
-          ...item,
-          selected: Boolean(existing),
-          quantity: String(existing?.quantity ?? item.quantity ?? 1),
-          unit_price: String(existing?.unit_price ?? item.estimated_price ?? 0),
-          description: existing?.description ?? item.description ?? ""
-        };
-      })
+    const requestRows = (requestItems || []).map((item) => {
+      const existing = existingByRequestItem.get(item.id);
+      return {
+        ...item,
+        manual: false,
+        selected: Boolean(existing),
+        quantity: String(existing?.quantity ?? item.quantity ?? 1),
+        unit_price: String(existing?.unit_price ?? item.estimated_price ?? 0),
+        unit: existing?.unit ?? item.unit ?? "",
+        item_name: existing?.item_name ?? item.item_name ?? item.items?.name ?? "",
+        description: existing?.description ?? item.description ?? ""
+      };
+    });
+
+    const manualRows = existingItems
+      .filter((item) => !item.purchase_request_item_id)
+      .map((item, index) => ({
+        id: item.id || `manual-existing-${index}`,
+        item_id: item.item_id || null,
+        item_name: item.item_name || "",
+        description: item.description || "",
+        quantity: String(item.quantity ?? 1),
+        unit: item.unit || "",
+        unit_price: String(item.unit_price ?? 0),
+        cost_code_id: item.cost_code_id || null,
+        items: item.items || null,
+        manual: true,
+        selected: true
+      }));
+
+    setPoDetailItems([...requestRows, ...manualRows]);
+  }
+
+  function addManualPoItem() {
+    setPoDetailItems((current) => [
+      ...current,
+      {
+        id: `manual-${Date.now()}-${current.length}`,
+        item_id: null,
+        item_name: "",
+        description: "",
+        quantity: "1",
+        unit: "pcs",
+        unit_price: "0",
+        cost_code_id: null,
+        items: null,
+        manual: true,
+        selected: true
+      }
+    ]);
+  }
+
+  function removePoDetailItem(index) {
+    setPoDetailItems((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index)
     );
   }
 
@@ -629,6 +675,17 @@ export default function MasterDataPage({
       }
       if (!poSelectedItems.length) {
         setToast({ type: "error", message: "Select at least one item from the Purchase Request." });
+        return;
+      }
+      if (
+        poSelectedItems.some(
+          (item) => !String(item.item_name || item.items?.name || "").trim()
+        )
+      ) {
+        setToast({
+          type: "error",
+          message: "Nama item wajib diisi untuk setiap item yang dipilih."
+        });
         return;
       }
       if (poSelectedItems.some((item) => Number(item.quantity || 0) <= 0)) {
@@ -972,12 +1029,22 @@ export default function MasterDataPage({
             <section className="sm:col-span-2 overflow-hidden rounded-md border border-slate-200">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">Items from Purchase Request</h3>
-                  <p className="mt-1 text-xs text-slate-500">Select the items to include in this purchase order, then set the quantity and agreed unit price.</p>
+                  <h3 className="text-sm font-semibold text-slate-900">Purchase Order Items</h3>
+                  <p className="mt-1 text-xs text-slate-500">Select items from the Purchase Request or add a manual item.</p>
                 </div>
-                <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">
-                  {poSelectedItems.length} selected
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={addManualPoItem}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tambah Item Manual
+                  </button>
+                  <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">
+                    {poSelectedItems.length} selected
+                  </span>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -1006,8 +1073,28 @@ export default function MasterDataPage({
                             />
                           </td>
                           <td className="px-3 py-2">
-                            <div className="font-medium text-slate-800">{item.items?.item_code || "-"}</div>
-                            <div className="text-xs text-slate-500">{item.item_name || item.items?.name || "-"}</div>
+                            {!item.manual && (
+                              <div className="font-medium text-slate-800">
+                                {item.items?.item_code || "-"}
+                              </div>
+                            )}
+                            <input
+                              type="text"
+                              value={item.item_name ?? ""}
+                              onChange={(event) =>
+                                updatePoDetailItem(index, {
+                                  item_name: event.target.value
+                                })
+                              }
+                              disabled={!item.selected}
+                              placeholder="Nama item / barang"
+                              className="mt-1 h-9 w-full min-w-[220px] rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            />
+                            {item.manual && (
+                              <div className="mt-1 text-[11px] font-medium text-cyan-600">
+                                Item Manual
+                              </div>
+                            )}
                           </td>
                           <td className="px-3 py-2">
                             <input
@@ -1020,7 +1107,20 @@ export default function MasterDataPage({
                               className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             />
                           </td>
-                          <td className="px-3 py-2 text-slate-600">{item.unit || "-"}</td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="text"
+                              value={item.unit ?? ""}
+                              onChange={(event) =>
+                                updatePoDetailItem(index, {
+                                  unit: event.target.value
+                                })
+                              }
+                              disabled={!item.selected}
+                              placeholder="pcs"
+                              className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            />
+                          </td>
                           <td className="px-3 py-2">
                             <input
                               type="number"
@@ -1033,7 +1133,24 @@ export default function MasterDataPage({
                             />
                           </td>
                           <td className="px-3 py-2 text-right font-medium text-slate-800">
-                            {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(lineTotal)}
+                            <div className="flex items-center justify-end gap-2">
+                              <span>
+                                {new Intl.NumberFormat("id-ID", {
+                                  style: "currency",
+                                  currency: "IDR",
+                                  maximumFractionDigits: 0
+                                }).format(lineTotal)}
+                              </span>
+                              {item.manual && (
+                                <button
+                                  type="button"
+                                  onClick={() => removePoDetailItem(index)}
+                                  className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                >
+                                  Hapus
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
