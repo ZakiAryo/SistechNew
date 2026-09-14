@@ -422,14 +422,13 @@ export default function PurchaseRequestPage() {
     });
   }
 
-  // `focusNew` controls whether the freshly-added row's "Item / Barang" input
-  // should receive focus once it mounts (used by the Enter-key handler below).
-  function addItem(focusNew = false) {
+  // Inserts a new empty row right after `insertAfterIndex` (or at the end when
+  // omitted, e.g. the "Tambah Item" button) and focuses its "Item / Barang" input.
+  function addItem(insertAfterIndex) {
     setRequestItems((current) => {
-      const next = [...current, { ...emptyItem }];
-      if (focusNew) {
-        pendingFocusIndexRef.current = next.length - 1;
-      }
+      const insertPosition = typeof insertAfterIndex === "number" ? insertAfterIndex + 1 : current.length;
+      const next = [...current.slice(0, insertPosition), { ...emptyItem }, ...current.slice(insertPosition)];
+      pendingFocusIndexRef.current = insertPosition;
       return next;
     });
   }
@@ -444,22 +443,16 @@ export default function PurchaseRequestPage() {
     });
   }
 
-  // Pressing Enter inside the "Item / Barang" field:
-  // - on the last row: adds a new empty row and focuses it
-  // - on any earlier row: just moves focus to the next row's input
-  // In both cases we prevent the default Enter behaviour so it doesn't submit the form.
+  // Pressing Enter inside the "Item / Barang" field always inserts a new empty
+  // row right below the current one and focuses it. We prevent the default
+  // Enter behaviour so it doesn't submit the form instead.
   function handleItemNameKeyDown(event, index) {
     if (event.key !== "Enter") {
       return;
     }
 
     event.preventDefault();
-
-    if (index === requestItems.length - 1) {
-      addItem(true);
-    } else {
-      itemInputRefs.current[index + 1]?.focus();
-    }
+    addItem(index);
   }
 
   function validateForm() {
@@ -782,7 +775,7 @@ export default function PurchaseRequestPage() {
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                onClick={() => addItem(true)}
+                onClick={() => addItem()}
               >
                 <Plus className="h-4 w-4" />
                 Tambah Item
