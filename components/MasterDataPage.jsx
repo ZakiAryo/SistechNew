@@ -679,7 +679,54 @@ export default function MasterDataPage({
         return;
       }
 
-      const detailRows = poSelectedItems.map((item) => ({
+      // Pastikan setiap item PO memiliki record di master `items`.
+      // Jika item sudah punya item_id, gunakan record master tersebut.
+      // Jika item_id kosong, cari berdasarkan nama; bila belum ada, buat item master baru.
+      const resolvedPoItems = [];
+      for (const item of poSelectedItems) {
+        let masterItemId = item.item_id || null;
+        const itemName = String(item.item_name || item.items?.name || "").trim();
+
+        if (!masterItemId && itemName) {
+          const { data: existingItem, error: existingItemError } = await supabase
+            .from("items")
+            .select("id")
+            .ilike("name", itemName)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingItemError) {
+            setToast({ type: "error", message: formatSupabaseError(existingItemError) });
+            setSubmitting(false);
+            return;
+          }
+
+          if (existingItem?.id) {
+            masterItemId = existingItem.id;
+          } else {
+            const { data: newItem, error: createItemError } = await supabase
+              .from("items")
+              .insert({ name: itemName })
+              .select("id")
+              .single();
+
+            if (createItemError) {
+              setToast({ type: "error", message: formatSupabaseError(createItemError) });
+              setSubmitting(false);
+              return;
+            }
+
+            masterItemId = newItem.id;
+          }
+        }
+
+        resolvedPoItems.push({ ...item, item_id: masterItemId });
+      }
+
+      // Header PO memakai item pertama untuk kompatibilitas dengan struktur lama.
+      payload.item_id = resolvedPoItems[0]?.item_id || null;
+
+      const detailRows = resolvedPoItems.map((item) => ({
         purchase_order_id: recordId,
         purchase_request_item_id: item.id || null,
         item_id: item.item_id || null,
