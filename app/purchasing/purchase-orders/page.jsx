@@ -66,14 +66,14 @@ export default function PurchasingPurchaseOrdersPage() {
           optionOrder: "project_name"
         },
         {
-          name: "purchase_request_id",
-          label: "Purchase Request",
+          name: "item_id",
+          label: "Item / Barang",
           type: "select",
           nullable: true,
-          optionsTable: "purchase_requests",
-          optionSelect: "id, pr_number, item_summary, item_id",
-          optionLabelKeys: ["pr_number", "item_summary"],
-          optionOrder: "pr_number"
+          optionsTable: "items",
+          optionSelect: "id, item_code, name",
+          optionLabelKeys: ["item_code", "name"],
+          optionOrder: "name"
         },
         { name: "order_date", label: "Order Date", type: "date", nullable: true },
         { name: "total_amount", label: "Total Amount", type: "number", defaultValue: "0" },
