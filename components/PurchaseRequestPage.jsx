@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import AppLayout from "./AppLayout";
@@ -121,6 +121,10 @@ export default function PurchaseRequestPage() {
     notes: ""
   });
   const [requestItems, setRequestItems] = useState([{ ...emptyItem }]);
+
+  // Refs to each "Item / Barang" input so we can move/create focus on Enter.
+  const itemInputRefs = useRef([]);
+  const pendingFocusIndexRef = useRef(null);
 
   const supabase = useMemo(() => {
     try {
@@ -289,6 +293,17 @@ export default function PurchaseRequestPage() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  // Keep the refs array in sync with the number of item rows, and apply any
+  // pending focus request (e.g. after a new row was added via Enter).
+  useEffect(() => {
+    itemInputRefs.current = itemInputRefs.current.slice(0, requestItems.length);
+
+    if (pendingFocusIndexRef.current !== null) {
+      itemInputRefs.current[pendingFocusIndexRef.current]?.focus();
+      pendingFocusIndexRef.current = null;
+    }
+  }, [requestItems]);
+
   function resetForm() {
     setFormData({
       pr_number: "",
@@ -407,8 +422,16 @@ export default function PurchaseRequestPage() {
     });
   }
 
-  function addItem() {
-    setRequestItems((current) => [...current, { ...emptyItem }]);
+  // `focusNew` controls whether the freshly-added row's "Item / Barang" input
+  // should receive focus once it mounts (used by the Enter-key handler below).
+  function addItem(focusNew = false) {
+    setRequestItems((current) => {
+      const next = [...current, { ...emptyItem }];
+      if (focusNew) {
+        pendingFocusIndexRef.current = next.length - 1;
+      }
+      return next;
+    });
   }
 
   function removeItem(index) {
@@ -419,6 +442,24 @@ export default function PurchaseRequestPage() {
 
       return current.filter((_, itemIndex) => itemIndex !== index);
     });
+  }
+
+  // Pressing Enter inside the "Item / Barang" field:
+  // - on the last row: adds a new empty row and focuses it
+  // - on any earlier row: just moves focus to the next row's input
+  // In both cases we prevent the default Enter behaviour so it doesn't submit the form.
+  function handleItemNameKeyDown(event, index) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (index === requestItems.length - 1) {
+      addItem(true);
+    } else {
+      itemInputRefs.current[index + 1]?.focus();
+    }
   }
 
   function validateForm() {
@@ -734,12 +775,14 @@ export default function PurchaseRequestPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Purchase Request Items</h3>
-                <p className="mt-1 text-xs text-slate-500">Pilih item master atau ketik nama barang bebas.</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Pilih item master atau ketik nama barang bebas. Tekan Enter untuk menambah baris baru.
+                </p>
               </div>
               <button
                 type="button"
                 className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                onClick={addItem}
+                onClick={() => addItem(true)}
               >
                 <Plus className="h-4 w-4" />
                 Tambah Item
@@ -766,10 +809,14 @@ export default function PurchaseRequestPage() {
                       Item / Barang <span className="text-rose-600">*</span>
                     </span>
                     <input
+                      ref={(el) => {
+                        itemInputRefs.current[index] = el;
+                      }}
                       list="purchase-request-item-options"
                       value={item.item_name || ""}
                       onChange={(event) => handleItemNameChange(index, event.target.value)}
-                      placeholder="Ketik nama barang atau pilih dari master item"
+                      onKeyDown={(event) => handleItemNameKeyDown(event, index)}
+                      placeholder="Ketik nama barang atau pilih dari master item (Enter = baris baru)"
                       className="mt-1 block h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
                     />
                     {item.item_id ? <span className="mt-1 block text-xs text-slate-500">Linked to master item.</span> : null}
