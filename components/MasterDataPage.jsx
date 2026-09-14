@@ -785,7 +785,7 @@ export default function MasterDataPage({
 
       const detailRows = resolvedPoItems.map((item) => ({
         purchase_order_id: recordId,
-        purchase_request_item_id: item.id || null,
+        purchase_request_item_id: item.manual ? null : (item.id || null),
         item_id: item.item_id || null,
         cost_code_id: item.cost_code_id || null,
         item_name: item.item_name || item.items?.name || "Purchase item",
