@@ -81,9 +81,20 @@ export default function MasterDataPage({
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [toast, setToast] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [poDetailItems, setPoDetailItems] = useState([]);
   const pathname = usePathname();
   const pageTitle = t(`page.${title}`, title);
   const entityLabel = t(`entity.${entityName}`, entityName);
+  const isPurchaseOrder = tableName === "purchase_orders";
+
+  const poSelectedItems = poDetailItems.filter((item) => item.selected);
+  const poSubtotal = poSelectedItems.reduce(
+    (sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0),
+    0
+  );
+  const poDiscountPercent = Math.min(100, Math.max(0, Number(formData.discount || 0)));
+  const poDiscountAmount = poSubtotal * (poDiscountPercent / 100);
+  const poTotal = poSubtotal - poDiscountAmount;
 
   const supabase = useMemo(() => {
     try {
@@ -300,18 +311,33 @@ export default function MasterDataPage({
         ];
 
         if (itemNames.length) {
+          // Ambil master items lalu cocokkan nama secara normalized.
+          // Ini menangani perbedaan kapitalisasi/spasi pada data lama.
           const { data, error } = await supabase
             .from(field.optionsTable)
             .select(field.optionSelect || "*")
-            .in("name", itemNames);
+            .order(field.optionOrder || "name", { ascending: true });
 
           if (error) {
-            console.error("Failed to load items by name:", error);
+            console.error("Failed to load items for name fallback:", error);
           } else {
-            masterItems = data || [];
+            const normalizedNames = new Set(
+              itemNames.map((name) => name.trim().toLowerCase())
+            );
+
+            masterItems = (data || []).filter((item) =>
+              normalizedNames.has(item.name?.trim().toLowerCase())
+            );
           }
         }
       }
+
+      console.log("PR dependent lookup", {
+        purchaseRequest: dependencyValue,
+        relationRows,
+        itemIds,
+        masterItems
+      });
 
       const options = relationRows
         .map((relationRow) => {
@@ -376,6 +402,60 @@ export default function MasterDataPage({
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  async function loadPurchaseOrderItems(purchaseRequestId, existingItems = []) {
+    if (!isPurchaseOrder || !supabase || !purchaseRequestId) {
+      setPoDetailItems([]);
+      return;
+    }
+
+    const { data: requestItems, error } = await supabase
+      .from("purchase_request_items")
+      .select(`
+        id,
+        item_id,
+        item_name,
+        description,
+        quantity,
+        unit,
+        estimated_price,
+        cost_code_id,
+        cost_code,
+        items(item_code, name)
+      `)
+      .eq("purchase_request_id", purchaseRequestId);
+
+    if (error) {
+      console.error("Failed to load Purchase Request items:", error);
+      setPoDetailItems([]);
+      return;
+    }
+
+    const existingByRequestItem = new Map(
+      existingItems.map((item) => [item.purchase_request_item_id, item])
+    );
+
+    setPoDetailItems(
+      (requestItems || []).map((item) => {
+        const existing = existingByRequestItem.get(item.id);
+        return {
+          ...item,
+          selected: Boolean(existing),
+          quantity: String(existing?.quantity ?? item.quantity ?? 1),
+          unit_price: String(existing?.unit_price ?? item.estimated_price ?? 0),
+          description: existing?.description ?? item.description ?? ""
+        };
+      })
+    );
+  }
+
+  function updatePoDetailItem(index, changes) {
+    setPoDetailItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...changes } : item
+      )
+    );
+  }
+
   function openCreateForm() {
     if (!canManage) {
       setToast({ type: "error", message: t("master.addDenied", "Your role is not allowed to add records here.") });
@@ -383,8 +463,10 @@ export default function MasterDataPage({
     }
 
     setEditingRecord(null);
-    setFormData(createEmptyFormData(fields));
+    const emptyData = createEmptyFormData(fields);
+    setFormData({ ...emptyData, discount: isPurchaseOrder ? "" : emptyData.discount });
     setFormErrors({});
+    setPoDetailItems([]);
 
     // Jangan tampilkan item dari Purchase Request sebelumnya.
     setLookupOptions((current) => {
@@ -413,7 +495,7 @@ export default function MasterDataPage({
     });
 
     setEditingRecord(record);
-    setFormData(nextData);
+    setFormData({ ...nextData, discount: nextData.discount ?? "" });
     setFormErrors({});
 
     // Saat edit, isi kembali option dependent berdasarkan PR yang tersimpan.
@@ -423,6 +505,16 @@ export default function MasterDataPage({
         loadDependentOptions(field, nextData[field.dependsOn])
       )
     );
+
+    if (isPurchaseOrder && nextData.purchase_request_id) {
+      const { data: existingItems } = await supabase
+        .from("purchase_order_items")
+        .select("purchase_request_item_id, item_id, item_name, description, quantity, unit_price")
+        .eq("purchase_order_id", record.id);
+      await loadPurchaseOrderItems(nextData.purchase_request_id, existingItems || []);
+    } else {
+      setPoDetailItems([]);
+    }
 
     setIsFormOpen(true);
   }
@@ -454,12 +546,21 @@ export default function MasterDataPage({
     dependentFields.forEach((field) => {
       loadDependentOptions(field, value);
     });
+
+    if (isPurchaseOrder && name === "purchase_request_id") {
+      loadPurchaseOrderItems(value);
+    }
   }
 
   function validateForm() {
     const errors = {};
 
     fields.forEach((field) => {
+      // PO menggunakan item_id dan total_amount dari detail rows, bukan input header biasa.
+      if (isPurchaseOrder && (field.name === "item_id" || field.name === "total_amount")) {
+        return;
+      }
+
       const value = String(formData[field.name] || "").trim();
 
       if (field.required && !value) {
@@ -484,6 +585,10 @@ export default function MasterDataPage({
   function buildPayload() {
     return fields.reduce((payload, field) => {
       let value = formData[field.name];
+
+      if (isPurchaseOrder && field.name === "total_amount") {
+        value = poTotal;
+      }
 
       if (typeof value === "string") {
         value = value.trim();
@@ -517,10 +622,34 @@ export default function MasterDataPage({
       return;
     }
 
+    if (isPurchaseOrder) {
+      if (!formData.purchase_request_id) {
+        setToast({ type: "error", message: "Purchase Request is required." });
+        return;
+      }
+      if (!poSelectedItems.length) {
+        setToast({ type: "error", message: "Select at least one item from the Purchase Request." });
+        return;
+      }
+      if (poSelectedItems.some((item) => Number(item.quantity || 0) <= 0)) {
+        setToast({ type: "error", message: "Quantity must be greater than 0 for every selected item." });
+        return;
+      }
+      if (poSelectedItems.some((item) => Number(item.unit_price || 0) < 0)) {
+        setToast({ type: "error", message: "Unit price cannot be negative." });
+        return;
+      }
+    }
+
     setSubmitting(true);
     const payload = buildPayload();
     if (userIdField && currentUser?.id && !editingRecord) {
       payload[userIdField] = currentUser.id;
+    }
+
+    if (isPurchaseOrder) {
+      payload.item_id = poSelectedItems[0]?.item_id || null;
+      payload.total_amount = poTotal;
     }
 
     const request = editingRecord
@@ -531,26 +660,88 @@ export default function MasterDataPage({
 
     if (mutationError) {
       setToast({ type: "error", message: formatSupabaseError(mutationError) });
-    } else {
-      await writeAuditLog(supabase, {
-        userId: currentUser?.id,
-        action: editingRecord ? "update" : "create",
-        module: entityName,
-        tableName,
-        recordId: editingRecord?.id || mutationData?.id,
-        metadata: payload
-      });
-      setToast({
-        type: "success",
-        message: t(editingRecord ? "master.updated" : "master.created", "{{entity}} saved successfully.", {
-          entity: entityLabel
-        })
-      });
-      setIsFormOpen(false);
-      setEditingRecord(null);
-      await loadRows();
+      setSubmitting(false);
+      return;
     }
 
+    const recordId = editingRecord?.id || mutationData?.id;
+
+    if (isPurchaseOrder && recordId) {
+      // Detail PO harus selalu mencerminkan pilihan terbaru pada form.
+      const { error: deleteItemsError } = await supabase
+        .from("purchase_order_items")
+        .delete()
+        .eq("purchase_order_id", recordId);
+
+      if (deleteItemsError) {
+        setToast({ type: "error", message: formatSupabaseError(deleteItemsError) });
+        setSubmitting(false);
+        return;
+      }
+
+      const detailRows = poSelectedItems.map((item) => ({
+        purchase_order_id: recordId,
+        purchase_request_item_id: item.id || null,
+        item_id: item.item_id || null,
+        cost_code_id: item.cost_code_id || null,
+        item_name: item.item_name || item.items?.name || "Purchase item",
+        description: item.description || "",
+        quantity: Number(item.quantity || 1),
+        unit: item.unit || null,
+        unit_price: Number(item.unit_price || 0)
+      }));
+
+      const { error: insertItemsError } = await supabase
+        .from("purchase_order_items")
+        .insert(detailRows);
+
+      if (insertItemsError) {
+        setToast({ type: "error", message: formatSupabaseError(insertItemsError) });
+        setSubmitting(false);
+        return;
+      }
+
+      if (!editingRecord) {
+        const { error: deliveryError } = await supabase
+          .from("delivery_orders")
+          .insert({ purchase_order_id: recordId, status: "waiting" });
+
+        if (deliveryError) {
+          setToast({ type: "error", message: formatSupabaseError(deliveryError) });
+          setSubmitting(false);
+          return;
+        }
+      }
+    }
+
+    await writeAuditLog(supabase, {
+      userId: currentUser?.id,
+      action: editingRecord ? "update" : "create",
+      module: entityName,
+      tableName,
+      recordId,
+      metadata: isPurchaseOrder
+        ? {
+            ...payload,
+            subtotal: poSubtotal,
+            discount_percent: poDiscountPercent,
+            discount_amount: poDiscountAmount,
+            total_amount: poTotal,
+            item_count: poSelectedItems.length
+          }
+        : payload
+    });
+
+    setToast({
+      type: "success",
+      message: t(editingRecord ? "master.updated" : "master.created", "{{entity}} saved successfully.", {
+        entity: entityLabel
+      })
+    });
+    setIsFormOpen(false);
+    setEditingRecord(null);
+    setPoDetailItems([]);
+    await loadRows();
     setSubmitting(false);
   }
 
@@ -704,25 +895,147 @@ export default function MasterDataPage({
         }
       >
         <form id={`${tableName}-form`} onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-          {hydratedFields.map((field) => (
-            <div key={field.name} className={field.fullWidth ? "sm:col-span-2" : ""}>
-              <FormInput
-                label={t(`field.${field.label}`, field.label)}
-                name={field.name}
-                type={field.type}
-                value={formData[field.name]}
-                onChange={handleInputChange}
-                placeholder={field.placeholder ? t(`field.placeholder.${field.placeholder}`, field.placeholder) : undefined}
-                required={field.required}
-                error={formErrors[field.name]}
-                options={field.options}
-                rows={field.rows}
-                readOnly={field.readOnly}
-                disabled={field.disabled}
-                helperText={field.helperText}
-              />
-            </div>
-          ))}
+          {hydratedFields.map((field) => {
+            if (isPurchaseOrder && (field.name === "item_id" || field.name === "total_amount")) {
+              return null;
+            }
+
+            return (
+              <div key={field.name} className={field.fullWidth ? "sm:col-span-2" : ""}>
+                <FormInput
+                  label={t(`field.${field.label}`, field.label)}
+                  name={field.name}
+                  type={field.type}
+                  value={formData[field.name]}
+                  onChange={handleInputChange}
+                  placeholder={field.placeholder ? t(`field.placeholder.${field.placeholder}`, field.placeholder) : undefined}
+                  required={field.required}
+                  error={formErrors[field.name]}
+                  options={field.options}
+                  rows={field.rows}
+                  readOnly={field.readOnly}
+                  disabled={field.disabled}
+                  helperText={field.helperText}
+                />
+              </div>
+            );
+          })}
+
+          {isPurchaseOrder ? (
+            <section className="sm:col-span-2 overflow-hidden rounded-md border border-slate-200">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Items from Purchase Request</h3>
+                  <p className="mt-1 text-xs text-slate-500">Select the items to include in this purchase order, then set the quantity and agreed unit price.</p>
+                </div>
+                <span className="rounded-full bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">
+                  {poSelectedItems.length} selected
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="w-12 px-3 py-2 text-center">Select</th>
+                      <th className="px-3 py-2">Item / Barang</th>
+                      <th className="w-24 px-3 py-2 text-right">Qty</th>
+                      <th className="w-20 px-3 py-2">Unit</th>
+                      <th className="w-36 px-3 py-2 text-right">Unit Price</th>
+                      <th className="w-36 px-3 py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {poDetailItems.length ? poDetailItems.map((item, index) => {
+                      const lineTotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
+                      return (
+                        <tr key={item.id || index} className={item.selected ? "bg-white" : "bg-slate-50/60"}>
+                          <td className="px-3 py-2 text-center">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(item.selected)}
+                              onChange={(event) => updatePoDetailItem(index, { selected: event.target.checked })}
+                              className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-slate-800">{item.items?.item_code || "-"}</div>
+                            <div className="text-xs text-slate-500">{item.item_name || item.items?.name || "-"}</div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.quantity ?? ""}
+                              onChange={(event) => updatePoDetailItem(index, { quantity: event.target.value })}
+                              disabled={!item.selected}
+                              className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-slate-600">{item.unit || "-"}</td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unit_price ?? ""}
+                              onChange={(event) => updatePoDetailItem(index, { unit_price: event.target.value })}
+                              disabled={!item.selected}
+                              className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right font-medium text-slate-800">
+                            {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(lineTotal)}
+                          </td>
+                        </tr>
+                      );
+                    }) : (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-500">
+                          Select a Purchase Request first to load its items.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="border-t border-slate-200 bg-slate-50 p-4">
+                <div className="ml-auto grid max-w-md gap-3 sm:grid-cols-2">
+                  <div className="text-sm text-slate-600">Subtotal</div>
+                  <div className="text-right text-sm font-semibold text-slate-900">
+                    {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(poSubtotal)}
+                  </div>
+
+                  <div className="text-sm text-slate-600">Discount (%)</div>
+                  <div>
+                    <input
+                      type="number"
+                      name="discount"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={formData.discount ?? ""}
+                      onChange={handleInputChange}
+                      className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-right text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div className="text-sm text-slate-600">Discount Amount</div>
+                  <div className="text-right text-sm font-medium text-rose-600">
+                    - {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(poDiscountAmount)}
+                  </div>
+
+                  <div className="border-t border-slate-300 pt-2 text-sm font-semibold text-slate-950">Total Amount</div>
+                  <div className="border-t border-slate-300 pt-2 text-right text-base font-bold text-slate-950">
+                    {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(poTotal)}
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
         </form>
       </Modal>
 
