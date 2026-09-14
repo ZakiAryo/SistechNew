@@ -122,9 +122,24 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
           items: item
         }
       ];
-  const subtotal = poItems.reduce((total, row) => total + Number(row.total_price || row.quantity * row.unit_price || 0), 0);
-  const discount = 0;
-  const tax = (subtotal - discount) * 0.11;
+  const subtotal = poItems.reduce(
+    (total, row) =>
+      total + Number(row.total_price || row.quantity * row.unit_price || 0),
+    0
+  );
+
+  // purchase_orders.total_amount menyimpan total setelah diskon.
+  // Diskon dihitung dari selisih subtotal dengan total_amount.
+  const finalAmount = Number(record?.total_amount ?? subtotal);
+
+  const discount = Math.max(0, subtotal - finalAmount);
+
+  const discountPercent =
+    subtotal > 0 ? (discount / subtotal) * 100 : 0;
+
+  // PPN belum dimasukkan ke total_amount PO.
+  const tax = 0;
+
   const total = subtotal - discount + tax;
 
   return (
@@ -396,7 +411,11 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
               </div>
               <div className="grid grid-cols-[29mm_30mm] border-b border-black">
                 <div className="px-1.5 py-1">DISCOUNT</div>
-                <div className="border-l border-black px-1.5 py-1 text-right">{formatNumber(discount)}</div>
+                <div className="border-l border-black px-1.5 py-1 text-right">
+                  {discount > 0
+                    ? `${discountPercent.toFixed(2)}% (${formatNumber(discount)})`
+                    : formatNumber(0)}
+              </div>
               </div>
               <div className="grid grid-cols-[29mm_30mm] border-b border-black">
                 <div className="px-1.5 py-1">TOTAL</div>
