@@ -123,9 +123,14 @@ export default function PurchaseRequestPage() {
   const [requestItems, setRequestItems] = useState([{ ...emptyItem }]);
 
   // Refs to each "Item / Barang" textarea so we can focus a newly-added row
-  // when it's created via Shift+Enter.
+  // when it's created via Shift+Enter, or return focus after picking a
+  // master-data suggestion.
   const itemInputRefs = useRef([]);
   const pendingFocusIndexRef = useRef(null);
+
+  // Which item row's textarea currently has focus — used to know where to
+  // render the master-data suggestion dropdown.
+  const [focusedItemRow, setFocusedItemRow] = useState(null);
 
   const supabase = useMemo(() => {
     try {
@@ -150,6 +155,20 @@ export default function PurchaseRequestPage() {
     label: getItemLabel(item),
     item
   }));
+
+  // Suggestions from master data for whichever item row is currently
+  // focused, matched against the last (in-progress) line of that textarea.
+  const activeSuggestionQuery = focusedItemRow !== null
+    ? String(requestItems[focusedItemRow]?.item_name || "")
+        .split("\n")
+        .pop()
+        .trim()
+        .toLowerCase()
+    : "";
+
+  const activeSuggestions = activeSuggestionQuery
+    ? itemOptions.filter((option) => option.label.toLowerCase().includes(activeSuggestionQuery)).slice(0, 6)
+    : [];
 
   const costCodeOptions = costCodes.map((costCode) => ({
     value: costCode.id,
@@ -295,12 +314,19 @@ export default function PurchaseRequestPage() {
   }, [toast]);
 
   // Keep the refs array in sync with the number of item rows, and apply any
-  // pending focus request after a new row is added via Shift+Enter.
+  // pending focus request — after a new row is added via Shift+Enter, or
+  // after a master-data suggestion is picked (cursor goes to the end).
   useEffect(() => {
     itemInputRefs.current = itemInputRefs.current.slice(0, requestItems.length);
 
     if (pendingFocusIndexRef.current !== null) {
-      itemInputRefs.current[pendingFocusIndexRef.current]?.focus();
+      const index = pendingFocusIndexRef.current;
+      const el = itemInputRefs.current[index];
+      if (el) {
+        el.focus();
+        const length = el.value.length;
+        el.setSelectionRange(length, length);
+      }
       pendingFocusIndexRef.current = null;
     }
   }, [requestItems]);
@@ -405,6 +431,34 @@ export default function PurchaseRequestPage() {
       item_id: matched ? matched.value : "",
       unit: matched?.item.unit || requestItems[index]?.unit || ""
     });
+  }
+
+  // Called when the user clicks a master-data suggestion under a row's
+  // textarea. Replaces the in-progress last line with the full item name and
+  // starts a fresh empty line so they can keep typing the next item.
+  function handleSelectSuggestion(index, option) {
+    setRequestItems((current) => {
+      return current.map((item, itemIndex) => {
+        if (itemIndex !== index) {
+          return item;
+        }
+
+        const lines = String(item.item_name || "").split("\n");
+        lines[lines.length - 1] = option.item.name;
+        const isSingleLine = lines.length === 1;
+        lines.push("");
+
+        return {
+          ...item,
+          item_name: lines.join("\n"),
+          item_id: isSingleLine ? option.value : item.item_id,
+          unit: isSingleLine ? option.item.unit || item.unit : item.unit
+        };
+      });
+    });
+
+    setFormErrors((current) => ({ ...current, [`item_${index}`]: undefined }));
+    pendingFocusIndexRef.current = index;
   }
 
   function handleCostCodeChange(index, value) {
@@ -765,7 +819,7 @@ export default function PurchaseRequestPage() {
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Purchase Request Items</h3>
                 <p className="mt-1 text-xs text-slate-500">
-                  Ketik nama barang bebas, Enter untuk baris baru di kolom ini. Shift+Enter menambah item baru.
+                  Ketik untuk cari dari master data (klik saran yang muncul), atau ketik bebas. Enter = baris baru di kolom ini, Shift+Enter = item baru.
                 </p>
               </div>
               <button
@@ -791,17 +845,37 @@ export default function PurchaseRequestPage() {
                     <span>
                       Item / Barang <span className="text-rose-600">*</span>
                     </span>
-                    <textarea
-                      ref={(el) => {
-                        itemInputRefs.current[index] = el;
-                      }}
-                      value={item.item_name || ""}
-                      onChange={(event) => handleItemNameChange(index, event.target.value)}
-                      onKeyDown={handleItemNameKeyDown}
-                      placeholder="Ketik nama barang, satu barang per baris (Shift+Enter = item baru)"
-                      rows={3}
-                      className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
-                    />
+                    <div className="relative mt-1">
+                      <textarea
+                        ref={(el) => {
+                          itemInputRefs.current[index] = el;
+                        }}
+                        value={item.item_name || ""}
+                        onChange={(event) => handleItemNameChange(index, event.target.value)}
+                        onKeyDown={handleItemNameKeyDown}
+                        onFocus={() => setFocusedItemRow(index)}
+                        onBlur={() => setFocusedItemRow((current) => (current === index ? null : current))}
+                        placeholder="Ketik nama barang, satu barang per baris (Shift+Enter = item baru)"
+                        rows={3}
+                        className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                      />
+                      {focusedItemRow === index && activeSuggestions.length > 0 ? (
+                        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 text-sm shadow-lg">
+                          {activeSuggestions.map((option) => (
+                            <li key={option.value}>
+                              <button
+                                type="button"
+                                className="block w-full px-3 py-2 text-left hover:bg-cyan-50"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => handleSelectSuggestion(index, option)}
+                              >
+                                {option.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
                     {item.item_id ? <span className="mt-1 block text-xs text-slate-500">Linked to master item.</span> : null}
                     {formErrors[`item_${index}`] ? <span className="mt-1 block text-xs font-medium text-rose-600">{formErrors[`item_${index}`]}</span> : null}
                   </label>
