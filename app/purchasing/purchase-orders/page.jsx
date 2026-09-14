@@ -73,7 +73,11 @@ export default function PurchasingPurchaseOrdersPage() {
           optionsTable: "items",
           optionSelect: "id, item_code, name",
           optionLabelKeys: ["item_code", "name"],
-          optionOrder: "name"
+          optionOrder: "name",
+          dependsOn: "purchase_request_id",
+          dependsOnTable: "purchase_request_items",
+          dependsOnColumn: "purchase_request_id",
+          dependsOnValueColumn: "id"
         },
         { name: "order_date", label: "Order Date", type: "date", nullable: true },
         { name: "total_amount", label: "Total Amount", type: "number", defaultValue: "0" },
