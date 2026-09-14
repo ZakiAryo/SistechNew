@@ -1,19 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-
 import { usePathname } from "next/navigation";
-
-import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  Plus,
-  RefreshCw,
-  Search,
-  ShieldAlert
-} from "lucide-react";
-
+import { AlertCircle, CheckCircle2, Loader2, Plus, RefreshCw, Search, ShieldAlert } from "lucide-react";
 import AppLayout from "./AppLayout";
 import ConfirmDialog from "./ConfirmDialog";
 import DataTable from "./DataTable";
@@ -21,7 +10,6 @@ import FormInput from "./FormInput";
 import { useLanguage } from "./LanguageProvider";
 import Modal from "./Modal";
 import PageHeader from "./PageHeader";
-
 import { writeAuditLog } from "@/lib/audit";
 import { canProfileAccessPath } from "@/lib/menuConfig";
 import { fetchProfileByUserId } from "@/lib/profile";
@@ -78,7 +66,6 @@ export default function MasterDataPage({
   useMenuAccessForManage = true
 }) {
   const { t } = useLanguage();
-
   const [rows, setRows] = useState([]);
   const [profile, setProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -89,16 +76,12 @@ export default function MasterDataPage({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [formErrors, setFormErrors] = useState({});
-  const [formData, setFormData] = useState(() =>
-    createEmptyFormData(fields)
-  );
+  const [formData, setFormData] = useState(() => createEmptyFormData(fields));
   const [editingRecord, setEditingRecord] = useState(null);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [toast, setToast] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-
   const pathname = usePathname();
-
   const pageTitle = t(`page.${title}`, title);
   const entityLabel = t(`entity.${entityName}`, entityName);
 
@@ -117,20 +100,6 @@ export default function MasterDataPage({
         (useMenuAccessForManage && canProfileAccessPath(profile, pathname)))
   );
 
-  /*
-   * ============================================================
-   * HYDRATE FIELD OPTIONS
-   * ============================================================
-   *
-   * Field biasa:
-   *   lookupOptions[field.optionsTable]
-   *
-   * Field dependent:
-   *   lookupOptions[field.name]
-   *
-   * Contoh:
-   * item_id -> lookupOptions["item_id"]
-   */
   const hydratedFields = useMemo(() => {
     return fields.map((field) => {
       if (!field.optionsTable) {
@@ -156,19 +125,14 @@ export default function MasterDataPage({
     return rows.filter((row) => {
       return searchColumns.some((key) => {
         const value = getNestedValue(row, key);
-
-        return String(value || "")
-          .toLowerCase()
-          .includes(normalizedSearch);
+        return String(value || "").toLowerCase().includes(normalizedSearch);
       });
     });
   }, [rows, searchColumns, searchTerm]);
 
   const loadRows = useCallback(async () => {
     if (!supabase) {
-      setError(
-        "Supabase environment is not configured. Check .env.local."
-      );
+      setError("Supabase environment is not configured. Check .env.local.");
       setLoading(false);
       return;
     }
@@ -205,10 +169,7 @@ export default function MasterDataPage({
 
     setCurrentUser(user);
 
-    const {
-      profile: currentProfile,
-      error: profileError
-    } = await fetchProfileByUserId(supabase, user.id);
+    const { profile: currentProfile, error: profileError } = await fetchProfileByUserId(supabase, user.id);
 
     if (profileError) {
       setProfile(null);
@@ -219,23 +180,16 @@ export default function MasterDataPage({
     setProfile(currentProfile);
   }, [supabase]);
 
-  /*
-   * ============================================================
-   * LOAD NORMAL LOOKUPS
-   * ============================================================
-   *
-   * Field yang punya dependsOn TIDAK dimuat di sini.
-   * Contohnya item_id karena item harus menunggu Purchase Request.
-   */
   const loadLookups = useCallback(async () => {
     if (!supabase) {
       return;
     }
 
+    // Lookup biasa dimuat saat halaman dibuka.
+    // Field dependent (mis. item_id) menunggu field induknya dipilih.
     const lookupFields = fields.filter(
       (field) => field.optionsTable && !field.dependsOn
     );
-
     const optionsMap = {};
 
     await Promise.all(
@@ -243,46 +197,36 @@ export default function MasterDataPage({
         const { data, error: lookupError } = await supabase
           .from(field.optionsTable)
           .select(field.optionSelect || "*")
-          .order(field.optionOrder || "name", {
-            ascending: true
-          });
+          .order(field.optionOrder || "name", { ascending: true });
 
         if (!lookupError) {
-          optionsMap[field.optionsTable] = (data || []).map(
-            (record) => ({
-              value: record[field.optionValue || "id"],
-              label:
-                buildOptionLabel(
-                  record,
-                  field.optionLabelKeys || ["name"]
-                ) ||
-                record.name ||
-                record.id
-            })
-          );
+          optionsMap[field.optionsTable] = (data || []).map((record) => ({
+            value: record[field.optionValue || "id"],
+            label:
+              buildOptionLabel(record, field.optionLabelKeys || ["name"]) ||
+              record.name ||
+              record.id
+          }));
         }
       })
     );
 
-    setLookupOptions(optionsMap);
+    setLookupOptions((current) => ({
+      ...current,
+      ...optionsMap
+    }));
   }, [fields, supabase]);
 
   /*
-   * ============================================================
-   * LOAD DEPENDENT OPTIONS
-   * ============================================================
+   * Load option untuk field yang bergantung pada field lain.
    *
-   * Contoh:
+   * Contoh PO:
+   * Purchase Request -> purchase_request_items -> item_id -> items
    *
-   * Purchase Request
-   *       ↓
-   * purchase_request_items
-   *       ↓
-   * item_id
-   *       ↓
-   * items
-   *       ↓
-   * Item / Barang dropdown
+   * purchase_request_items pada data saat ini dapat memiliki item_id NULL,
+   * jadi fungsi ini mendukung dua cara:
+   * 1. cocokkan item berdasarkan item_id jika tersedia;
+   * 2. fallback ke item_name jika item_id NULL.
    */
   const loadDependentOptions = useCallback(
     async (field, dependencyValue) => {
@@ -291,121 +235,127 @@ export default function MasterDataPage({
           ...current,
           [field.name]: []
         }));
-
         return;
       }
 
-      /*
-       * 1. Ambil item_id dari purchase_request_items
-       * berdasarkan Purchase Request yang dipilih.
-       */
-      const {
-        data: relationRows,
-        error: relationError
-      } = await supabase
-        .from(field.dependsOnTable)
-        .select(field.dependsOnItemColumn || "item_id")
-        .eq(
-          field.dependsOnColumn || field.dependsOn,
-          dependencyValue
-        );
+      const relationTable = field.dependsOnTable || "purchase_request_items";
+      const relationColumn = field.dependsOnColumn || field.dependsOn;
+      const itemColumn = field.dependsOnItemColumn || "item_id";
+
+      const { data: relationRows, error: relationError } = await supabase
+        .from(relationTable)
+        .select(`id, ${itemColumn}, item_name`)
+        .eq(relationColumn, dependencyValue);
 
       if (relationError) {
-        console.error(
-          "Failed to load dependent options:",
-          relationError
-        );
-
+        console.error("Failed to load dependent options:", relationError);
         setLookupOptions((current) => ({
           ...current,
           [field.name]: []
         }));
-
         return;
       }
 
-      /*
-       * 2. Ambil semua item_id.
-       */
+      if (!relationRows?.length) {
+        setLookupOptions((current) => ({
+          ...current,
+          [field.name]: []
+        }));
+        return;
+      }
+
+      // Ambil item_id yang benar-benar tersimpan pada PR.
       const itemIds = [
         ...new Set(
-          (relationRows || [])
-            .map(
-              (row) =>
-                row[
-                  field.dependsOnItemColumn || "item_id"
-                ]
-            )
+          relationRows
+            .map((row) => row[itemColumn])
             .filter(Boolean)
         )
       ];
 
-      /*
-       * Tidak ada item pada PR.
-       */
-      if (!itemIds.length) {
-        setLookupOptions((current) => ({
-          ...current,
-          [field.name]: []
-        }));
+      let masterItems = [];
 
-        return;
+      // Prioritas pertama: item_id.
+      if (itemIds.length) {
+        const { data, error } = await supabase
+          .from(field.optionsTable)
+          .select(field.optionSelect || "*")
+          .in(field.optionValue || "id", itemIds);
+
+        if (error) {
+          console.error("Failed to load items by ID:", error);
+        } else {
+          masterItems = data || [];
+        }
       }
 
-      /*
-       * 3. Ambil detail item dari tabel items.
-       */
-      const {
-        data,
-        error: itemError
-      } = await supabase
-        .from(field.optionsTable)
-        .select(field.optionSelect || "*")
-        .in(
-          field.optionValue || "id",
-          itemIds
-        )
-        .order(field.optionOrder || "name", {
-          ascending: true
-        });
+      // Fallback: data PR lama/current dapat memiliki item_id NULL.
+      if (!masterItems.length) {
+        const itemNames = [
+          ...new Set(
+            relationRows
+              .map((row) => row.item_name?.trim())
+              .filter(Boolean)
+          )
+        ];
 
-      if (itemError) {
-        console.error(
-          "Failed to load item options:",
-          itemError
-        );
+        if (itemNames.length) {
+          const { data, error } = await supabase
+            .from(field.optionsTable)
+            .select(field.optionSelect || "*")
+            .in("name", itemNames);
 
-        setLookupOptions((current) => ({
-          ...current,
-          [field.name]: []
-        }));
-
-        return;
+          if (error) {
+            console.error("Failed to load items by name:", error);
+          } else {
+            masterItems = data || [];
+          }
+        }
       }
 
-      /*
-       * 4. Bentuk option untuk FormInput.
-       */
-      const options = (data || []).map((record) => ({
-        value: record[field.optionValue || "id"],
-        label:
-          buildOptionLabel(
-            record,
-            field.optionLabelKeys || ["name"]
-          ) ||
-          record.name ||
-          record.id
-      }));
+      const options = relationRows
+        .map((relationRow) => {
+          const relationItemId = relationRow[itemColumn];
+          const relationItemName = relationRow.item_name?.trim();
 
-      /*
-       * 5. Simpan berdasarkan nama field.
-       *
-       * Contoh:
-       * lookupOptions["item_id"]
-       */
+          const masterItem = masterItems.find((item) => {
+            if (relationItemId && item[field.optionValue || "id"] === relationItemId) {
+              return true;
+            }
+
+            return (
+              relationItemName &&
+              item.name?.trim().toLowerCase() === relationItemName.toLowerCase()
+            );
+          });
+
+          if (!masterItem) {
+            return null;
+          }
+
+          return {
+            value: masterItem[field.optionValue || "id"],
+            label:
+              buildOptionLabel(
+                masterItem,
+                field.optionLabelKeys || ["name"]
+              ) ||
+              masterItem.name ||
+              masterItem.id
+          };
+        })
+        .filter(Boolean);
+
+      // Hilangkan option duplikat jika item yang sama muncul lebih dari sekali
+      // pada purchase_request_items.
+      const uniqueOptions = options.filter(
+        (option, index, array) =>
+          array.findIndex((item) => item.value === option.value) === index
+      );
+
       setLookupOptions((current) => ({
         ...current,
-        [field.name]: options
+        [field.name]: uniqueOptions
       }));
     },
     [supabase]
@@ -422,24 +372,13 @@ export default function MasterDataPage({
       return undefined;
     }
 
-    const timer = window.setTimeout(
-      () => setToast(null),
-      3200
-    );
-
+    const timer = window.setTimeout(() => setToast(null), 3200);
     return () => window.clearTimeout(timer);
   }, [toast]);
 
   function openCreateForm() {
     if (!canManage) {
-      setToast({
-        type: "error",
-        message: t(
-          "master.addDenied",
-          "Your role is not allowed to add records here."
-        )
-      });
-
+      setToast({ type: "error", message: t("master.addDenied", "Your role is not allowed to add records here.") });
       return;
     }
 
@@ -447,19 +386,14 @@ export default function MasterDataPage({
     setFormData(createEmptyFormData(fields));
     setFormErrors({});
 
-    /*
-     * Bersihkan option dari field dependent
-     * supaya tidak membawa item dari PR sebelumnya.
-     */
+    // Jangan tampilkan item dari Purchase Request sebelumnya.
     setLookupOptions((current) => {
       const next = { ...current };
-
       fields
         .filter((field) => field.dependsOn)
         .forEach((field) => {
           next[field.name] = [];
         });
-
       return next;
     });
 
@@ -468,25 +402,13 @@ export default function MasterDataPage({
 
   async function openEditForm(record) {
     if (!canManage) {
-      setToast({
-        type: "error",
-        message: t(
-          "master.editDenied",
-          "Your role is not allowed to edit records here."
-        )
-      });
-
+      setToast({ type: "error", message: t("master.editDenied", "Your role is not allowed to edit records here.") });
       return;
     }
 
     const nextData = createEmptyFormData(fields);
-
     fields.forEach((field) => {
-      const value = getNestedValue(
-        record,
-        field.name
-      );
-
+      const value = getNestedValue(record, field.name);
       nextData[field.name] = value ?? "";
     });
 
@@ -494,20 +416,11 @@ export default function MasterDataPage({
     setFormData(nextData);
     setFormErrors({});
 
-    /*
-     * Kalau sedang edit PO yang sudah memiliki PR,
-     * load item berdasarkan PR tersebut.
-     */
-    const dependentFields = fields.filter(
-      (field) => field.dependsOn
-    );
-
+    // Saat edit, isi kembali option dependent berdasarkan PR yang tersimpan.
+    const dependentFields = fields.filter((field) => field.dependsOn);
     await Promise.all(
       dependentFields.map((field) =>
-        loadDependentOptions(
-          field,
-          nextData[field.dependsOn]
-        )
+        loadDependentOptions(field, nextData[field.dependsOn])
       )
     );
 
@@ -517,27 +430,13 @@ export default function MasterDataPage({
   function handleInputChange(event) {
     const { name, value } = event.target;
 
-    /*
-     * Cari field yang bergantung kepada field ini.
-     *
-     * Contoh:
-     * purchase_request_id
-     *       ↓
-     * item_id
-     */
     const dependentFields = fields.filter(
       (field) => field.dependsOn === name
     );
 
-    /*
-     * Simpan value baru sekaligus kosongkan
-     * field turunannya.
-     */
+    // Simpan field induk dan kosongkan semua field turunannya.
     setFormData((current) => {
-      const next = {
-        ...current,
-        [name]: value
-      };
+      const next = { ...current, [name]: value };
 
       dependentFields.forEach((field) => {
         next[field.name] = "";
@@ -551,10 +450,7 @@ export default function MasterDataPage({
       [name]: undefined
     }));
 
-    /*
-     * Setelah Purchase Request berubah,
-     * ambil Item yang ada di PR tersebut.
-     */
+    // Jika Purchase Request berubah, ambil item yang hanya berasal dari PR itu.
     dependentFields.forEach((field) => {
       loadDependentOptions(field, value);
     });
@@ -564,48 +460,24 @@ export default function MasterDataPage({
     const errors = {};
 
     fields.forEach((field) => {
-      const value = String(
-        formData[field.name] || ""
-      ).trim();
+      const value = String(formData[field.name] || "").trim();
 
       if (field.required && !value) {
-        errors[field.name] = t(
-          "validation.required",
-          "{{field}} is required.",
-          {
-            field: t(
-              `field.${field.label}`,
-              field.label
-            )
-          }
-        );
+        errors[field.name] = t("validation.required", "{{field}} is required.", {
+          field: t(`field.${field.label}`, field.label)
+        });
       }
 
-      if (
-        field.type === "email" &&
-        value &&
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-      ) {
-        errors[field.name] = t(
-          "validation.email",
-          "Enter a valid email address."
-        );
+      if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        errors[field.name] = t("validation.email", "Enter a valid email address.");
       }
     });
 
-    if (
-      formData.start_date &&
-      formData.end_date &&
-      formData.start_date > formData.end_date
-    ) {
-      errors.end_date = t(
-        "validation.endDateAfterStart",
-        "End date must be after start date."
-      );
+    if (formData.start_date && formData.end_date && formData.start_date > formData.end_date) {
+      errors.end_date = t("validation.endDateAfterStart", "End date must be after start date.");
     }
 
     setFormErrors(errors);
-
     return Object.keys(errors).length === 0;
   }
 
@@ -617,26 +489,15 @@ export default function MasterDataPage({
         value = value.trim();
       }
 
-      if (
-        value === "" &&
-        (
-          field.nullable ||
-          field.type === "date" ||
-          field.type === "select"
-        )
-      ) {
+      if (value === "" && (field.nullable || field.type === "date" || field.type === "select")) {
         value = null;
       }
 
-      if (
-        (value === null || value === "") &&
-        field.defaultValue
-      ) {
+      if ((value === null || value === "") && field.defaultValue) {
         value = field.defaultValue;
       }
 
       payload[field.name] = value;
-
       return payload;
     }, {});
   }
@@ -647,12 +508,8 @@ export default function MasterDataPage({
     if (!canManage) {
       setToast({
         type: "error",
-        message: t(
-          "master.actionDenied",
-          "Your role is not allowed to perform this action."
-        )
+        message: t("master.actionDenied", "Your role is not allowed to perform this action.")
       });
-
       return;
     }
 
@@ -661,70 +518,36 @@ export default function MasterDataPage({
     }
 
     setSubmitting(true);
-
     const payload = buildPayload();
-
-    if (
-      userIdField &&
-      currentUser?.id &&
-      !editingRecord
-    ) {
+    if (userIdField && currentUser?.id && !editingRecord) {
       payload[userIdField] = currentUser.id;
     }
 
     const request = editingRecord
-      ? supabase
-          .from(tableName)
-          .update(payload)
-          .eq("id", editingRecord.id)
-      : supabase
-          .from(tableName)
-          .insert(payload);
+      ? supabase.from(tableName).update(payload).eq("id", editingRecord.id)
+      : supabase.from(tableName).insert(payload);
 
-    const {
-      data: mutationData,
-      error: mutationError
-    } = await request
-      .select("id")
-      .maybeSingle();
+    const { data: mutationData, error: mutationError } = await request.select("id").maybeSingle();
 
     if (mutationError) {
-      setToast({
-        type: "error",
-        message: formatSupabaseError(
-          mutationError
-        )
-      });
+      setToast({ type: "error", message: formatSupabaseError(mutationError) });
     } else {
       await writeAuditLog(supabase, {
         userId: currentUser?.id,
-        action: editingRecord
-          ? "update"
-          : "create",
+        action: editingRecord ? "update" : "create",
         module: entityName,
         tableName,
-        recordId:
-          editingRecord?.id ||
-          mutationData?.id,
+        recordId: editingRecord?.id || mutationData?.id,
         metadata: payload
       });
-
       setToast({
         type: "success",
-        message: t(
-          editingRecord
-            ? "master.updated"
-            : "master.created",
-          "{{entity}} saved successfully.",
-          {
-            entity: entityLabel
-          }
-        )
+        message: t(editingRecord ? "master.updated" : "master.created", "{{entity}} saved successfully.", {
+          entity: entityLabel
+        })
       });
-
       setIsFormOpen(false);
       setEditingRecord(null);
-
       await loadRows();
     }
 
@@ -739,30 +562,20 @@ export default function MasterDataPage({
     if (!canManage) {
       setToast({
         type: "error",
-        message: t(
-          "master.actionDenied",
-          "Your role is not allowed to perform this action."
-        )
+        message: t("master.actionDenied", "Your role is not allowed to perform this action.")
       });
-
       return;
     }
 
     setDeleting(true);
 
-    const { error: deleteError } =
-      await supabase
-        .from(tableName)
-        .delete()
-        .eq("id", recordToDelete.id);
+    const { error: deleteError } = await supabase
+      .from(tableName)
+      .delete()
+      .eq("id", recordToDelete.id);
 
     if (deleteError) {
-      setToast({
-        type: "error",
-        message: formatSupabaseError(
-          deleteError
-        )
-      });
+      setToast({ type: "error", message: formatSupabaseError(deleteError) });
     } else {
       await writeAuditLog(supabase, {
         userId: currentUser?.id,
@@ -772,20 +585,8 @@ export default function MasterDataPage({
         recordId: recordToDelete.id,
         metadata: recordToDelete
       });
-
-      setToast({
-        type: "success",
-        message: t(
-          "master.deleted",
-          "{{entity}} deleted successfully.",
-          {
-            entity: entityLabel
-          }
-        )
-      });
-
+      setToast({ type: "success", message: t("master.deleted", "{{entity}} deleted successfully.", { entity: entityLabel }) });
       setRecordToDelete(null);
-
       await loadRows();
     }
 
@@ -796,35 +597,19 @@ export default function MasterDataPage({
     <AppLayout>
       <PageHeader
         title={pageTitle}
-        description={t(
-          `pageDescription.${title}`,
-          description
-        )}
-        eyebrow={t(
-          "section.Master Data",
-          "Master Data"
-        )}
+        description={t(`pageDescription.${title}`, description)}
+        eyebrow={t("section.Master Data", "Master Data")}
         actions={
           <>
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
               onClick={loadRows}
-              title={t(
-                "common.refresh",
-                "Refresh"
-              )}
+              title={t("common.refresh", "Refresh")}
             >
               <RefreshCw className="h-4 w-4" />
-
-              <span className="hidden sm:inline">
-                {t(
-                  "common.refresh",
-                  "Refresh"
-                )}
-              </span>
+              <span className="hidden sm:inline">{t("common.refresh", "Refresh")}</span>
             </button>
-
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
@@ -832,21 +617,11 @@ export default function MasterDataPage({
               disabled={!canManage}
               title={
                 canManage
-                  ? t(
-                      "master.addEntity",
-                      "Add {{entity}}",
-                      {
-                        entity: entityLabel
-                      }
-                    )
-                  : t(
-                      "master.rolePermissionRequired",
-                      "Role permission required"
-                    )
+                  ? t("master.addEntity", "Add {{entity}}", { entity: entityLabel })
+                  : t("master.rolePermissionRequired", "Role permission required")
               }
             >
               <Plus className="h-4 w-4" />
-
               {t("common.add", "Add")}
             </button>
           </>
@@ -856,7 +631,6 @@ export default function MasterDataPage({
       {!canManage ? (
         <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <ShieldAlert className="mt-0.5 h-4 w-4 flex-none" />
-
           <p>
             {t(
               "master.readOnlyNotice",
@@ -869,32 +643,18 @@ export default function MasterDataPage({
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <label className="relative block w-full sm:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
           <input
             value={searchTerm}
-            onChange={(event) =>
-              setSearchTerm(event.target.value)
-            }
-            placeholder={t(
-              "master.searchPlaceholder",
-              "Search {{title}}",
-              {
-                title: pageTitle.toLowerCase()
-              }
-            )}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder={t("master.searchPlaceholder", "Search {{title}}", { title: pageTitle.toLowerCase() })}
             className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
           />
         </label>
-
         <p className="text-sm text-slate-500">
-          {t(
-            "master.showing",
-            "Showing {{visible}} of {{total}} records",
-            {
-              visible: visibleRows.length,
-              total: rows.length
-            }
-          )}
+          {t("master.showing", "Showing {{visible}} of {{total}} records", {
+            visible: visibleRows.length,
+            total: rows.length
+          })}
         </p>
       </div>
 
@@ -903,17 +663,8 @@ export default function MasterDataPage({
         rows={visibleRows}
         loading={loading}
         error={error}
-        emptyTitle={t(
-          "master.emptyTitle",
-          "No {{title}} found",
-          {
-            title: pageTitle.toLowerCase()
-          }
-        )}
-        emptyDescription={t(
-          "master.emptyDescription",
-          "Try another keyword or add a new record."
-        )}
+        emptyTitle={t("master.emptyTitle", "No {{title}} found", { title: pageTitle.toLowerCase() })}
+        emptyDescription={t("master.emptyDescription", "Try another keyword or add a new record.")}
         onEdit={openEditForm}
         onDelete={setRecordToDelete}
         canManage={canManage}
@@ -925,101 +676,45 @@ export default function MasterDataPage({
         open={isFormOpen}
         title={
           editingRecord
-            ? t(
-                "master.editEntity",
-                "Edit {{entity}}",
-                {
-                  entity: entityLabel
-                }
-              )
-            : t(
-                "master.addEntity",
-                "Add {{entity}}",
-                {
-                  entity: entityLabel
-                }
-              )
+            ? t("master.editEntity", "Edit {{entity}}", { entity: entityLabel })
+            : t("master.addEntity", "Add {{entity}}", { entity: entityLabel })
         }
-        description={t(
-          "master.formDescription",
-          "Fill in the required fields and keep master data consistent."
-        )}
-        onClose={
-          submitting
-            ? undefined
-            : () => setIsFormOpen(false)
-        }
+        description={t("master.formDescription", "Fill in the required fields and keep master data consistent.")}
+        onClose={submitting ? undefined : () => setIsFormOpen(false)}
         footer={
           <div className="flex justify-end gap-2">
             <button
               type="button"
               className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
-              onClick={() =>
-                setIsFormOpen(false)
-              }
+              onClick={() => setIsFormOpen(false)}
               disabled={submitting}
             >
-              {t(
-                "common.cancel",
-                "Cancel"
-              )}
+              {t("common.cancel", "Cancel")}
             </button>
-
             <button
               type="submit"
               form={`${tableName}-form`}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
               disabled={submitting}
             >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-
-              {t(
-                "common.save",
-                "Save"
-              )}
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {t("common.save", "Save")}
             </button>
           </div>
         }
       >
-        <form
-          id={`${tableName}-form`}
-          onSubmit={handleSubmit}
-          className="grid gap-4 sm:grid-cols-2"
-        >
+        <form id={`${tableName}-form`} onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
           {hydratedFields.map((field) => (
-            <div
-              key={field.name}
-              className={
-                field.fullWidth
-                  ? "sm:col-span-2"
-                  : ""
-              }
-            >
+            <div key={field.name} className={field.fullWidth ? "sm:col-span-2" : ""}>
               <FormInput
-                label={t(
-                  `field.${field.label}`,
-                  field.label
-                )}
+                label={t(`field.${field.label}`, field.label)}
                 name={field.name}
                 type={field.type}
                 value={formData[field.name]}
                 onChange={handleInputChange}
-                placeholder={
-                  field.placeholder
-                    ? t(
-                        `field.placeholder.${field.placeholder}`,
-                        field.placeholder
-                      )
-                    : undefined
-                }
+                placeholder={field.placeholder ? t(`field.placeholder.${field.placeholder}`, field.placeholder) : undefined}
                 required={field.required}
-                error={
-                  formErrors[field.name]
-                }
+                error={formErrors[field.name]}
                 options={field.options}
                 rows={field.rows}
                 readOnly={field.readOnly}
@@ -1033,25 +728,12 @@ export default function MasterDataPage({
 
       <ConfirmDialog
         open={Boolean(recordToDelete)}
-        title={t(
-          "master.deleteEntity",
-          "Delete {{entity}}",
-          {
-            entity: entityLabel
-          }
-        )}
-        description={t(
-          "master.deleteConfirm",
-          "Are you sure you want to delete this {{entity}}?",
-          {
-            entity:
-              entityLabel.toLowerCase()
-          }
-        )}
+        title={t("master.deleteEntity", "Delete {{entity}}", { entity: entityLabel })}
+        description={t("master.deleteConfirm", "Are you sure you want to delete this {{entity}}?", {
+          entity: entityLabel.toLowerCase()
+        })}
         loading={deleting}
-        onCancel={() =>
-          setRecordToDelete(null)
-        }
+        onCancel={() => setRecordToDelete(null)}
         onConfirm={handleDelete}
       />
 
@@ -1068,7 +750,6 @@ export default function MasterDataPage({
           ) : (
             <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
           )}
-
           <p>{toast.message}</p>
         </div>
       ) : null}
