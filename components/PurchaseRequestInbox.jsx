@@ -455,11 +455,25 @@
                               aria-label={`Select ${item.item_name || "item"}`}
                             />
                           </td>
-                          <td className="px-3 py-3 text-slate-800">
-                            <p className="font-medium">{item.item_name || item.items?.name || "-"}</p>
-                            {item.description ? <p className="mt-1 text-xs text-slate-500">{item.description}</p> : null}
+                          <td className="px-3 py-3">
+                            <input
+                              type="text"
+                              value={item.item_name || ""}
+                              onChange={(event) =>{
+                                updatePoItem(index, {
+                                  item_name: event.target.value
+                                });
+                              }}
+                              disabled={!item.selected}
+                              className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            />
+                            {item.description ? (
+                              <p className="mt-1 text-xs text-slate-500">
+                                {item.description}
+                              </p>
+                            ) : null}
                           </td>
-                            <td className="px-3 py-3">
+                          <td className="px-3 py-3">
                               <input
                                 type="Number"
                                 min="0"
