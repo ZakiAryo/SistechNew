@@ -138,7 +138,7 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
     subtotal > 0 ? (discount / subtotal) * 100 : 0;
 
   // PPN belum dimasukkan ke total_amount PO.
-  const tax = netAmount * 0.11;
+  const tax = (subtotal - discount) * 0.11;
 
   const total = subtotal - discount + tax;
 
