@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Edit2, ExternalLink, FileSearch, Trash2 } from "lucide-react";
+import { Copy, Edit2, ExternalLink, FileSearch, Trash2 } from "lucide-react";
 import { useLanguage } from "./LanguageProvider";
 
 function getNestedValue(row, key) {
@@ -72,6 +72,7 @@ export default function DataTable({
   emptyDescription = "Create a record to get started.",
   onEdit,
   onDelete,
+  onDuplicate,
   canManage,
   detailBasePath,
   documentUrlKey
@@ -79,7 +80,11 @@ export default function DataTable({
   const { locale, t } = useLanguage();
   const tableRows = Array.isArray(rows) ? rows : Array.isArray(data) ? data : [];
   const showActions = Boolean(canManage || detailBasePath || documentUrlKey);
-  const actionButtonCount = (detailBasePath ? 1 : 0) + (documentUrlKey ? 1 : 0) + (canManage ? 2 : 0);
+  const actionButtonCount =
+    (detailBasePath ? 1 : 0) +
+    (documentUrlKey ? 1 : 0) +
+    (canManage ? 2 : 0) +
+    (canManage && onDuplicate ? 1 : 0);
   const actionColumnWidth = showActions ? Math.max(96, actionButtonCount * 36 + 16) : 0;
   const tableMinWidth = Math.max(640, columns.length * 124 + actionColumnWidth);
   const skeletonColumns = columns.length + (showActions ? 1 : 0);
@@ -202,6 +207,17 @@ export default function DataTable({
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
+                          {onDuplicate ? (
+                            <button
+                              type="button"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-amber-700 hover:bg-amber-50"
+                              onClick={() => onDuplicate(row)}
+                              aria-label={t("common.duplicateRecord", "Copy as revision")}
+                              title={t("common.duplicate", "Copy as Revision")}
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-rose-600 hover:bg-rose-50"
