@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, Plus, RefreshCw, Search, ShieldAlert } from "lucide-react";
 import AppLayout from "./AppLayout";
@@ -82,6 +82,10 @@ export default function MasterDataPage({
   const [toast, setToast] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [poDetailItems, setPoDetailItems] = useState([]);
+  // Refs to each PO item row's "Item / Barang" textarea, so a newly-added
+  // manual row (via Shift+Enter) can receive focus automatically.
+  const poItemInputRefs = useRef([]);
+  const pendingPoFocusIndexRef = useRef(null);
   const pathname = usePathname();
   const pageTitle = t(`page.${title}`, title);
   const entityLabel = t(`entity.${entityName}`, entityName);
@@ -402,6 +406,21 @@ export default function MasterDataPage({
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    poItemInputRefs.current = poItemInputRefs.current.slice(0, poDetailItems.length);
+
+    if (pendingPoFocusIndexRef.current !== null) {
+      const index = pendingPoFocusIndexRef.current;
+      const el = poItemInputRefs.current[index];
+      if (el) {
+        el.focus();
+        const length = el.value.length;
+        el.setSelectionRange(length, length);
+      }
+      pendingPoFocusIndexRef.current = null;
+    }
+  }, [poDetailItems]);
+
   async function loadPurchaseOrderItems(purchaseRequestId, existingItems = []) {
     if (!isPurchaseOrder || !supabase || !purchaseRequestId) {
       setPoDetailItems([]);
@@ -470,22 +489,36 @@ export default function MasterDataPage({
   }
 
   function addManualPoItem() {
-    setPoDetailItems((current) => [
-      ...current,
-      {
-        id: `manual-${Date.now()}-${current.length}`,
-        item_id: null,
-        item_name: "",
-        description: "",
-        quantity: "1",
-        unit: "pcs",
-        unit_price: "0",
-        cost_code_id: null,
-        items: null,
-        manual: true,
-        selected: true
-      }
-    ]);
+    setPoDetailItems((current) => {
+      const next = [
+        ...current,
+        {
+          id: `manual-${Date.now()}-${current.length}`,
+          item_id: null,
+          item_name: "",
+          description: "",
+          quantity: "1",
+          unit: "pcs",
+          unit_price: "0",
+          cost_code_id: null,
+          items: null,
+          manual: true,
+          selected: true
+        }
+      ];
+      pendingPoFocusIndexRef.current = next.length - 1;
+      return next;
+    });
+  }
+
+  // Shift+Enter inside a PO row's "Item / Barang" textarea adds a new manual
+  // item row (same as clicking "Tambah Item Manual") and focuses it. Plain
+  // Enter is left alone so it keeps the textarea's native newline behaviour.
+  function handlePoItemNameKeyDown(event) {
+    if (event.key === "Enter" && event.shiftKey) {
+      event.preventDefault();
+      addManualPoItem();
+    }
   }
 
   function removePoDetailItem(index) {
@@ -1056,17 +1089,21 @@ export default function MasterDataPage({
                                 {item.items?.item_code || "-"}
                               </div>
                             )}
-                            <input
-                              type="text"
+                            <textarea
+                              ref={(el) => {
+                                poItemInputRefs.current[index] = el;
+                              }}
                               value={item.item_name ?? ""}
                               onChange={(event) =>
                                 updatePoDetailItem(index, {
                                   item_name: event.target.value
                                 })
                               }
+                              onKeyDown={handlePoItemNameKeyDown}
                               disabled={!item.selected}
-                              placeholder="Nama item / barang"
-                              className="mt-1 h-9 w-full min-w-[220px] rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                              placeholder="Nama item / barang (Shift+Enter = item baru)"
+                              rows={2}
+                              className="mt-1 w-full min-w-[220px] resize-y rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             />
                             {item.manual && (
                               <div className="mt-1 text-[11px] font-medium text-cyan-600">
