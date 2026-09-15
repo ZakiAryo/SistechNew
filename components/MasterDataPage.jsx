@@ -82,6 +82,7 @@ export default function MasterDataPage({
   const [toast, setToast] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [poDetailItems, setPoDetailItems] = useState([]);
+  const [poItemSearch, setPoItemSearch] = useState("");
   // Refs to each PO item row's "Item / Barang" textarea, so a newly-added
   // manual row (via Shift+Enter) can receive focus automatically.
   const poItemInputRefs = useRef([]);
@@ -92,6 +93,20 @@ export default function MasterDataPage({
   const isPurchaseOrder = tableName === "purchase_orders";
 
   const poSelectedItems = poDetailItems.filter((item) => item.selected);
+  const poItemSearchKeyword = poItemSearch.trim().toLowerCase();
+  const filteredPoDetailItems = poDetailItems
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => {
+      if (!poItemSearchKeyword) {
+        return true;
+      }
+
+      return [item.item_name, item.items?.item_code, item.items?.name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(poItemSearchKeyword);
+    });
   const poSubtotal = poSelectedItems.reduce(
     (sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0),
     0
@@ -488,14 +503,14 @@ export default function MasterDataPage({
     setPoDetailItems([...requestRows, ...manualRows]);
   }
 
-  function addManualPoItem() {
+  function addManualPoItem(initialName = "") {
     setPoDetailItems((current) => {
       const next = [
         ...current,
         {
           id: `manual-${Date.now()}-${current.length}`,
           item_id: null,
-          item_name: "",
+          item_name: initialName,
           description: "",
           quantity: "1",
           unit: "pcs",
@@ -509,6 +524,14 @@ export default function MasterDataPage({
       pendingPoFocusIndexRef.current = next.length - 1;
       return next;
     });
+  }
+
+  // Adds a manual item pre-filled with whatever the user typed in the PO
+  // item search box (used by the "no results" empty state), then clears the
+  // search so the newly added row is immediately visible in the list.
+  function addManualPoItemFromSearch() {
+    addManualPoItem(poItemSearch.trim());
+    setPoItemSearch("");
   }
 
   // Shift+Enter inside a PO row's "Item / Barang" textarea adds a new manual
@@ -1058,6 +1081,21 @@ export default function MasterDataPage({
                 </div>
               </div>
 
+              {poDetailItems.length ? (
+                <div className="border-b border-slate-200 px-3 py-2">
+                  <label className="relative block w-full sm:max-w-xs">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={poItemSearch}
+                      onChange={(event) => setPoItemSearch(event.target.value)}
+                      placeholder="Cari item / barang..."
+                      className="h-9 w-full rounded-md border border-slate-300 bg-white pl-8 pr-3 text-sm outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                </div>
+              ) : null}
+
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -1071,7 +1109,9 @@ export default function MasterDataPage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {poDetailItems.length ? poDetailItems.map((item, index) => {
+                    {poDetailItems.length ? (
+                      filteredPoDetailItems.length ? (
+                        filteredPoDetailItems.map(({ item, index }) => {
                       const lineTotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
                       return (
                         <tr key={item.id || index} className={item.selected ? "bg-white" : "bg-slate-50/60"}>
@@ -1169,7 +1209,23 @@ export default function MasterDataPage({
                           </td>
                         </tr>
                       );
-                    }) : (
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-500">
+                            <p>Tidak ada item yang cocok dengan &quot;{poItemSearch.trim()}&quot;.</p>
+                            <button
+                              type="button"
+                              onClick={addManualPoItemFromSearch}
+                              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-700 hover:bg-cyan-100"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Tambah &quot;{poItemSearch.trim()}&quot; sebagai item baru
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    ) : (
                       <tr>
                         <td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-500">
                           Select a Purchase Request first to load its items.
