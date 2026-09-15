@@ -366,7 +366,7 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
                   <td className="px-1 py-2 text-center">{formatNumber(quantity || 1)}</td>
                   <td className="px-1 py-2 text-center">{row.unit || row.items?.unit || unitFallback}</td>
                   <td className="min-h-[70mm] px-2 py-2 leading-snug">
-                    <p>{itemName}</p>
+                    <p className="whitespace-pre-line">{itemName}</p>
                     {itemCode ? <p>{itemCode}</p> : null}
                     {row.description ? <p className="mt-1 whitespace-pre-line">{row.description}</p> : null}
                     <div className="mt-8 space-y-0.5">
