@@ -372,7 +372,7 @@ function PurchaseOrderDocument({ record, deliveryOrders = [] }) {
                     <div className="mt-8 space-y-0.5">
                       <p>GENERAL TERM &amp; CONDITION:</p>
                       <p>- Delivery time : {record?.delivery_status || "Ready stock"}</p>
-                      <p>- Franco {project?.project_name || project?.project_code || "-"}</p>
+                      <p>- {project?.project_name || project?.project_code || "-"}</p>
                       <p>- Penalty : One Permile per Day max 5%</p>
                       <p>- Grand Total Prices is INCLUDED PPN 11%</p>
                       <p>- Kepatuhan SMK3L (Sistem Manajemen Kesehatan, Keselamatan Kerja dan Lingkungan)</p>
