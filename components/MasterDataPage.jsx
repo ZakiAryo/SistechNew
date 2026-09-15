@@ -82,6 +82,9 @@ export default function MasterDataPage({
   const [toast, setToast] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [poDetailItems, setPoDetailItems] = useState([]);
+  // When set, the next successful save is a revision copy of an existing PO
+  // rather than a brand-new independent one — see openRevisionForm below.
+  const [revisionSource, setRevisionSource] = useState(null);
   const [poItemSearch, setPoItemSearch] = useState("");
   // Refs to each PO item row's "Item / Barang" textarea, so a newly-added
   // manual row (via Shift+Enter) can receive focus automatically.
@@ -565,6 +568,7 @@ export default function MasterDataPage({
     }
 
     setEditingRecord(null);
+    setRevisionSource(null);
     const emptyData = createEmptyFormData(fields);
     setFormData({ ...emptyData, discount: isPurchaseOrder ? "" : emptyData.discount });
     setFormErrors({});
@@ -597,10 +601,56 @@ export default function MasterDataPage({
     });
 
     setEditingRecord(record);
+    setRevisionSource(null);
     setFormData({ ...nextData, discount: nextData.discount ?? "" });
     setFormErrors({});
 
     // Saat edit, isi kembali option dependent berdasarkan PR yang tersimpan.
+    const dependentFields = fields.filter((field) => field.dependsOn);
+    await Promise.all(
+      dependentFields.map((field) =>
+        loadDependentOptions(field, nextData[field.dependsOn])
+      )
+    );
+
+    if (isPurchaseOrder && nextData.purchase_request_id) {
+      const { data: existingItems } = await supabase
+        .from("purchase_order_items")
+        .select("purchase_request_item_id, item_id, item_name, description, quantity, unit_price")
+        .eq("purchase_order_id", record.id);
+      await loadPurchaseOrderItems(nextData.purchase_request_id, existingItems || []);
+    } else {
+      setPoDetailItems([]);
+    }
+
+    setIsFormOpen(true);
+  }
+
+  // Creates a new, independent PO document pre-filled from an existing one —
+  // used for "revisions" that need their own po_number (matching a fresh
+  // physical printed document) while still tracking which PO they came from
+  // via revision_of / revision_number.
+  async function openRevisionForm(record) {
+    if (!canManage) {
+      setToast({ type: "error", message: t("master.addDenied", "Your role is not allowed to add records here.") });
+      return;
+    }
+
+    const nextData = createEmptyFormData(fields);
+    fields.forEach((field) => {
+      const value = getNestedValue(record, field.name);
+      nextData[field.name] = value ?? "";
+    });
+
+    // Dokumen revisi selalu punya nomor sendiri — kosongkan supaya
+    // auto-generate seperti PO baru biasa, bukan menimpa nomor PO asal.
+    nextData.po_number = "";
+
+    setEditingRecord(null);
+    setRevisionSource({ id: record.id, revision_number: record.revision_number || 0 });
+    setFormData({ ...nextData, discount: nextData.discount ?? "" });
+    setFormErrors({});
+
     const dependentFields = fields.filter((field) => field.dependsOn);
     await Promise.all(
       dependentFields.map((field) =>
@@ -760,6 +810,14 @@ export default function MasterDataPage({
       payload[userIdField] = currentUser.id;
     }
 
+    // Revisi selalu jadi baris baru (bukan update ke PO asal), jadi ini cuma
+    // berlaku saat editingRecord kosong — mencegah link revisi ke-apply
+    // secara nggak sengaja kalau alur lain kebetulan pakai state yang sama.
+    if (isPurchaseOrder && !editingRecord && revisionSource) {
+      payload.revision_of = revisionSource.id;
+      payload.revision_number = (revisionSource.revision_number || 0) + 1;
+    }
+
     let resolvedPoItems = poSelectedItems;
 
     if (isPurchaseOrder) {
@@ -878,6 +936,7 @@ export default function MasterDataPage({
     });
     setIsFormOpen(false);
     setEditingRecord(null);
+    setRevisionSource(null);
     setPoDetailItems([]);
     await loadRows();
     setSubmitting(false);
@@ -996,6 +1055,7 @@ export default function MasterDataPage({
         emptyDescription={t("master.emptyDescription", "Try another keyword or add a new record.")}
         onEdit={openEditForm}
         onDelete={setRecordToDelete}
+        onDuplicate={isPurchaseOrder ? openRevisionForm : undefined}
         canManage={canManage}
         detailBasePath={detailBasePath}
         documentUrlKey={documentUrlKey}
